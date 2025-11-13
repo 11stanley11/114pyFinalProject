@@ -1,0 +1,1 @@
+# Defines different game modes.
