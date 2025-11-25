@@ -1,2 +1,19 @@
-# Game configuration settings
-# (e.g., screen resolution, colors, game speed)
+"""
+Game configuration settings.
+"""
+
+from ursina import color
+
+# Screen settings
+FULLSCREEN = False
+
+# Game settings
+GRID_SIZE = 8
+SNAKE_SPEED = 3
+
+# Colors
+BACKGROUND_COLOR = color.dark_gray
+SNAKE_COLOR = color.green
+FOOD_COLOR = color.red
+GRID_COLOR = color.gray
+BOUNDARY_COLOR = color.light_gray
