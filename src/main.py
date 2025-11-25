@@ -53,15 +53,13 @@ def update():
     global score
     
     if snake.direction.length() > 0: # If game is active
-        snake.apply_turn() # Apply any buffered turns
-
-        # Check for game over *before* moving
+        # Check for game over
         if snake.will_collide(GRID_SIZE):
             game_over_text.text = "Game Over\n(Press 'r' to restart)"
             game_over_text.color = window.color.invert()
-            snake.direction = Vec3(0, 0, 0) # Stop the snake
-            return # Stop the rest of the update function
-
+            snake.direction = Vec3(0, 0, 0)  # Stop the snake
+            return # Skip the rest of the update
+            
         snake.move()
 
         # Check for collision with food
