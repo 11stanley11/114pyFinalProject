@@ -13,7 +13,7 @@ This file is used by the Gemini agent to track the development process of the 3D
 - [x] Adjusted camera to a more isometric view.
 
 ---
-
+wad
 ## Changelog
 
 ### Bug Fixes and Camera Adjustments
