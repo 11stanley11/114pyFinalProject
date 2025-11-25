@@ -4,7 +4,7 @@ The player-controlled snake.
 
 from ursina import Entity, Vec3, color, Vec4
 import time
-from config import SNAKE_SPEED, SNAKE_COLOR
+from config import SNAKE_SPEED, SNAKE_COLOR, GRID_SIZE
 
 class Snake:
     def __init__(self):
@@ -36,6 +36,27 @@ class Snake:
             alpha = 1.0 - (i / (num_segments - 1)) * 0.8  # alpha from 1.0 down to 0.2
             segment.color = color.Color(SNAKE_COLOR.r, SNAKE_COLOR.g, SNAKE_COLOR.b, alpha)
 
+
+
+    def check_collision(self, grid_size):
+        """
+        Checks if the snake will collide with walls or itself on its next move.
+        """
+        half_grid = grid_size // 2
+
+        # Wall collision
+        if (self.head.x > half_grid or self.head.x < -half_grid or 
+            self.head.y > half_grid or self.head.y < -half_grid or 
+            self.head.z > half_grid or self.head.z < -half_grid):
+            return True
+
+        # Self collision
+        for segment in self.body[1:]:
+            if self.head.position == segment.position:
+                return True
+
+        return False
+
     def move(self):
         if time.time() - self.last_move_time > 1 / SNAKE_SPEED:
             self.last_move_time = time.time()
@@ -63,7 +84,7 @@ class Snake:
                     self.up = -right
                 elif key == 'q': # Roll Left
                     self.up = right
-
+            
             # --- Move body ---
             for i in range(len(self.body) - 1, 0, -1):
                 self.body[i].position = self.body[i - 1].position
@@ -80,23 +101,3 @@ class Snake:
         new_segment = Entity(model='cube', color=SNAKE_COLOR, scale=1, position=self.body[-1].position)
         self.body.append(new_segment)
         self.update_appearance()
-
-    def will_collide(self, grid_size):
-        """
-        Checks if the snake will collide with walls or itself on its next move.
-        """
-        next_pos = self.head.position + self.direction.normalized()
-        half_grid = grid_size // 2
-
-        # Wall collision
-        if (next_pos.x > half_grid or next_pos.x < -half_grid or
-            next_pos.y > half_grid or next_pos.y < -half_grid or
-            next_pos.z > half_grid or next_pos.z < -half_grid):
-            return True
-
-        # Self collision
-        for segment in self.body[1:]:
-            if next_pos == segment.position:
-                return True
-
-        return False
