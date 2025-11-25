@@ -36,33 +36,33 @@ class Snake:
             alpha = 1.0 - (i / (num_segments - 1)) * 0.8  # alpha from 1.0 down to 0.2
             segment.color = color.Color(SNAKE_COLOR.r, SNAKE_COLOR.g, SNAKE_COLOR.b, alpha)
 
+    def apply_turn(self):
+        if self.turn_buffer:
+            key = self.turn_buffer.pop(0)
+            
+            right = self.direction.cross(self.up).normalized()
+            
+            if key == 'd': # Turn Left
+                self.direction = -right
+            elif key == 'a': # Turn Right
+                self.direction = right
+            elif key == 'w': # Turn Up
+                new_direction = self.up
+                self.up = -self.direction
+                self.direction = new_direction
+            elif key == 's': # Turn Down
+                new_direction = -self.up
+                self.up = self.direction
+                self.direction = new_direction
+            # 'q' and 'e' for roll
+            elif key == 'e': # Roll Left
+                self.up = -right
+            elif key == 'q': # Roll Left
+                self.up = right
+
     def move(self):
         if time.time() - self.last_move_time > 1 / SNAKE_SPEED:
             self.last_move_time = time.time()
-
-            # --- Handle Turning ---
-            if self.turn_buffer:
-                key = self.turn_buffer.pop(0)
-                
-                right = self.direction.cross(self.up).normalized()
-                
-                if key == 'd': # Turn Left
-                    self.direction = -right
-                elif key == 'a': # Turn Right
-                    self.direction = right
-                elif key == 'w': # Turn Up
-                    new_direction = self.up
-                    self.up = -self.direction
-                    self.direction = new_direction
-                elif key == 's': # Turn Down
-                    new_direction = -self.up
-                    self.up = self.direction
-                    self.direction = new_direction
-                # 'q' and 'e' for roll
-                elif key == 'e': # Roll Left
-                    self.up = -right
-                elif key == 'q': # Roll Left
-                    self.up = right
 
             # --- Move body ---
             for i in range(len(self.body) - 1, 0, -1):
@@ -81,16 +81,18 @@ class Snake:
         self.body.append(new_segment)
         self.update_appearance()
 
-    def check_collision(self, grid_size):
+    def will_collide(self, grid_size):
+        next_pos = self.head.position + self.direction.normalized()
+
         # Wall collision
-        if not (-grid_size / 2 < self.head.x < grid_size / 2 and
-                -grid_size / 2 < self.head.y < grid_size / 2 and
-                -grid_size / 2 < self.head.z < grid_size / 2):
+        if not (-grid_size / 2 <= next_pos.x <= grid_size / 2 and
+                -grid_size / 2 <= next_pos.y <= grid_size / 2 and
+                -grid_size / 2 <= next_pos.z <= grid_size / 2):
             return True
 
         # Self collision
-        for segment in self.body[1:]:
-            if self.head.position == segment.position:
+        for segment in self.body[:-1]:
+            if next_pos == segment.position:
                 return True
-
+        
         return False
