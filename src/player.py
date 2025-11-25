@@ -59,10 +59,10 @@ class Snake:
                     self.up = self.direction
                     self.direction = new_direction
                 # 'q' and 'e' for roll
-                elif key == 'e': # Roll Right
-                    self.up = right
-                elif key == 'q': # Roll Left
+                elif key == 'e': # Roll Left
                     self.up = -right
+                elif key == 'q': # Roll Left
+                    self.up = right
 
             # --- Move body ---
             for i in range(len(self.body) - 1, 0, -1):
