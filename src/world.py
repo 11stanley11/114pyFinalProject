@@ -16,16 +16,16 @@ class WorldGrid(Entity):
         boundary_plane_alpha = 0.1 # Semi-transparent
         
         # X-planes
-        Entity(parent=self, model='cube', scale=(0.1, GRID_SIZE + 0.2, GRID_SIZE + 0.2), position=(half_grid + 0.1, 0, 0), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
-        Entity(parent=self, model='cube', scale=(0.1, GRID_SIZE + 0.2, GRID_SIZE + 0.2), position=(-half_grid - 0.1, 0, 0), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
+        Entity(parent=self, model='cube', scale=(0.1, GRID_SIZE + 1, GRID_SIZE + 1), position=(half_grid + 0.5, 0, 0), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
+        Entity(parent=self, model='cube', scale=(0.1, GRID_SIZE + 1, GRID_SIZE + 1), position=(-half_grid - 0.5, 0, 0), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
         
         # Y-planes
-        Entity(parent=self, model='cube', scale=(GRID_SIZE + 0.2, 0.1, GRID_SIZE + 0.2), position=(0, half_grid + 0.1, 0), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
-        Entity(parent=self, model='cube', scale=(GRID_SIZE + 0.2, 0.1, GRID_SIZE + 0.2), position=(0, -half_grid - 0.1, 0), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
+        Entity(parent=self, model='cube', scale=(GRID_SIZE + 1, 0.1, GRID_SIZE + 1), position=(0, half_grid + 0.5, 0), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
+        Entity(parent=self, model='cube', scale=(GRID_SIZE + 1, 0.1, GRID_SIZE + 1), position=(0, -half_grid - 0.5, 0), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
         
         # Z-planes
-        Entity(parent=self, model='cube', scale=(GRID_SIZE + 0.2, GRID_SIZE + 0.2, 0.1), position=(0, 0, half_grid + 0.1), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
-        Entity(parent=self, model='cube', scale=(GRID_SIZE + 0.2, GRID_SIZE + 0.2, 0.1), position=(0, 0, -half_grid - 0.1), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
+        Entity(parent=self, model='cube', scale=(GRID_SIZE + 1, GRID_SIZE + 1, 0.1), position=(0, 0, half_grid + 0.5), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
+        Entity(parent=self, model='cube', scale=(GRID_SIZE + 1, GRID_SIZE + 1, 0.1), position=(0, 0, -half_grid - 0.5), color=BOUNDARY_COLOR, alpha=boundary_plane_alpha)
 
 
         # --- Draw Grid Joints with Gradient and Transparency ---
