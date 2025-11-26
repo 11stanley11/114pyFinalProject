@@ -7,7 +7,8 @@ from player import Snake
 from food import Food
 from world import WorldGrid
 from camera import SnakeCamera
-from config import GRID_SIZE, BACKGROUND_COLOR, FULLSCREEN
+from config import GRID_SIZE, BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED
+import time
 
 # --- Global Game Objects ---
 app = Ursina(fullscreen=FULLSCREEN)
@@ -53,22 +54,26 @@ def update():
     global score
     
     if snake.direction.length() > 0: # If game is active
+        if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
+            snake.last_move_time = time.time()
+
+            snake.handle_turn()
+
+            # Check for game over
+            if snake.will_collide(GRID_SIZE):
+                game_over_text.text = "Game Over\n(Press 'r' to restart)"
+                game_over_text.color = window.color.invert()
+                snake.direction = Vec3(0, 0, 0)  # Stop the snake
+                return # Skip the rest of the update
             
-        snake.move()
+            snake.move()
 
-        # Check for game over
-        if snake.check_collision(GRID_SIZE):
-            game_over_text.text = "Game Over\n(Press 'r' to restart)"
-            game_over_text.color = window.color.invert()
-            snake.direction = Vec3(0, 0, 0)  # Stop the snake
-            return # Skip the rest of the update
-
-        # Check for collision with food
-        if snake.head.position == food.position:
-            snake.grow()
-            food.reposition()
-            score += 1
-            score_text.text = f"Score: {score}"
+            # Check for collision with food
+            if snake.head.position == food.position:
+                snake.grow()
+                food.reposition()
+                score += 1
+                score_text.text = f"Score: {score}"
 
 def input(key):
     """
