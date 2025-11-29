@@ -13,139 +13,228 @@ import leaderboard
 from config import GRID_SIZE, BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED
 import time
 
-# --- Global Game State ---
-# 遊戲模式: 'player' (預設), 或 'ai' (啟用 AI 玩家)
-current_mode = 'player' 
-ai_snake = None # AI Snake instance
-
 # --- Setup Window ---
 app = Ursina(fullscreen=FULLSCREEN)
-grid = WorldGrid()
-score = 0
-score_text = Text(text=f"Score: {score}", position=(-0.85, 0.45), scale=2)
-game_over_text = Text(text="", origin=(0, 0), scale=3)
+window.color = BACKGROUND_COLOR
+window.title = "3D Snake - Group Project"
+window.borderless = False 
 
-# 初始化變數
+# --- Global Variables ---
+grid = None
 snake = None
+ai_snake = None
 food = None
 camera_controller = None
-game_active = False # 新增遊戲活躍狀態標誌
+direction_hints = None
+current_mode = None 
 
-# --- Game Window ---
-window.color = BACKGROUND_COLOR
+# UI States
+main_menu = None
+leaderboard_ui = None
+highscore_input = None # Holds the active input window
 
-def check_highscore_and_end(message):
-    """Checks for high score and displays game over message."""
-    global snake, game_over_text, game_active
+# Game UI Elements
+score = 0
+score_text = Text(text="", position=(-0.85, 0.45), scale=2, enabled=False)
+game_over_text = Text(text="", origin=(0, 0), scale=3, enabled=False)
+
+# --- UI CLASSES ---
+
+class MainMenu(Entity):
+    def __init__(self):
+        super().__init__(parent=camera.ui)
+        self.bg = Entity(parent=self, model='quad', scale=(20, 10), color=color.black66, z=10)
+        self.title = Text(text='3D SNAKE', parent=self, scale=4, y=0.35, origin=(0,0), color=color.green, z=-1)
+        
+        self.btn_classic = Button(text='Classic Mode', color=color.azure, scale=(0.4, 0.08), position=(0, 0.1), parent=self, z=-1)
+        self.btn_classic.on_click = lambda: start_game('classic')
+        
+        self.btn_ai = Button(text='Survival Mode (vs AI)', color=color.orange, scale=(0.4, 0.08), position=(0, -0.05), parent=self, z=-1)
+        self.btn_ai.on_click = lambda: start_game('ai')
+
+        self.btn_leaderboard = Button(text='Leaderboard', color=color.gold, scale=(0.4, 0.08), position=(0, -0.2), parent=self, z=-1)
+        self.btn_leaderboard.on_click = show_leaderboard
+
+        self.btn_quit = Button(text='Quit', color=color.red, scale=(0.3, 0.06), position=(0, -0.35), parent=self, z=-1)
+        self.btn_quit.on_click = application.quit
+
+class LeaderboardUI(Entity):
+    def __init__(self):
+        super().__init__(parent=camera.ui, enabled=False)
+        self.bg = Entity(parent=self, model='quad', scale=(20, 10), color=color.black90, z=9)
+        self.title = Text(text='TOP SCORES', parent=self, scale=3, y=0.4, origin=(0,0), color=color.gold, z=-1)
+        self.score_lines = Text(text='', parent=self, scale=1.5, position=(0, 0.25), origin=(0,1), z=-1)
+        
+        self.btn_back = Button(text='Back', color=color.gray, scale=(0.2, 0.08), position=(0, -0.4), parent=self, z=-1)
+        self.btn_back.on_click = show_menu
+
+    def refresh(self):
+        scores = leaderboard.load_scores()
+        text_content = ""
+        for i, entry in enumerate(scores):
+            text_content += f"{i+1}. {entry['name']}  -  {entry['score']}\n"
+        self.score_lines.text = text_content
+
+class HighScoreInput(Entity):
+    def __init__(self, final_score):
+        super().__init__(parent=camera.ui)
+        self.final_score = final_score
+        
+        self.bg = Entity(parent=self, model='quad', scale=(10, 5), color=color.black90, z=8)
+        self.title = Text(text='NEW HIGH SCORE!', parent=self, scale=2.5, y=0.2, origin=(0,0), color=color.gold, z=-1)
+        self.sub = Text(text=f'You scored: {final_score}', parent=self, scale=1.5, y=0.1, origin=(0,0), z=-1)
+        
+        # 'active=True' ensures you can type immediately
+        self.inp = InputField(parent=self, y=-0.1, limit_content_to='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890', active=True)
+        self.inp.text_color = color.white
+        
+        self.btn_submit = Button(text='Save', color=color.green, scale=(0.2, 0.08), position=(0, -0.25), parent=self, z=-1)
+        self.btn_submit.on_click = self.submit_score
+
+    def submit_score(self):
+        global highscore_input
+        name = self.inp.text
+        if not name: name = "Anonymous"
+        
+        leaderboard.save_new_score(name, self.final_score)
+        
+        # IMPORTANT: Destroy input AND reset variable so game knows we are done typing
+        destroy(self)
+        highscore_input = None
+        
+        show_leaderboard()
+
+# --- GAME LOGIC ---
+
+def start_game(mode):
+    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, leaderboard_ui
     
-    # 計算分數
-    final_score = len(snake.body) - 3
+    main_menu.enabled = False
+    leaderboard_ui.enabled = False
+    current_mode = mode
     
-    game_over_text.text = f"GAME OVER! {message}\nScore: {final_score}\nPress R to Restart"
-    game_over_text.enabled = True
-    score_text.enabled = False
+    if not grid: grid = WorldGrid()
     
-    # 停止蛇的移動並標記遊戲結束
-    snake.direction = Vec3(0, 0, 0)
-    game_active = False
-    
-def initialize_game():
-    """Initializes the game for the first run."""
-    global snake, food, camera_controller, ai_snake
-    
-    # 創建玩家蛇
     snake = Snake()
-    # 創建食物
-    food = Food()
-    # 創建鏡頭控制器
-    camera_controller = SnakeCamera(snake)
-    # 創建方向提示 UI
-    DirectionHints(snake)
-
-    # 根據模式創建 AI 蛇
+    direction_hints = DirectionHints(snake)
+    
     if current_mode == 'ai':
-        # 假設 AI 從不同的起始位置開始，以避免與玩家蛇碰撞
-        ai_snake = AISnake(start_pos=(3, 0, 3)) 
+        ai_snake = AISnake(start_pos=(3, 0, 3))
     else:
-        ai_snake = None
+        ai_snake = None 
+
+    food = Food()
+    camera_controller = SnakeCamera(snake)
     
     update_score(0)
     score_text.enabled = True
     game_over_text.enabled = False
 
-def start_game_loop():
-    """Starts the snake moving."""
-    global game_active
-    game_active = True
-    # 讓蛇開始移動 (假設初始方向為前進)
-    if snake.direction.length() == 0:
-        snake.direction = Vec3(0, 0, 1)
-
-
-def restart_game():
-    """
-    Resets the game to its initial state.
-    """
-    global snake, food, score, score_text, game_over_text, camera_controller, ai_snake, game_active
-
-    # 銷毀舊的實體
-    if snake:
-        for segment in snake.body:
-            destroy(segment)
-        destroy(snake.head_marker)
-    if food:
-        destroy(food)
-    if ai_snake:
-        for segment in ai_snake.body:
-            destroy(segment)
-        destroy(ai_snake.head_marker)
-
-    # 重新初始化遊戲
-    initialize_game()
-    # 重新啟用遊戲迴圈標誌
-    game_active = False
-
-
 def update_score(new_val):
     global score
     score = new_val
     score_text.text = f"Score: {score}"
-    game_over_text.text = ""
 
-    # 更新鏡頭以追蹤新的蛇
+def stop_game():
+    global snake, ai_snake, food, direction_hints, camera_controller, highscore_input
+    
+    if snake:
+        for segment in snake.body: destroy(segment)
+        destroy(snake.head_marker)
+        snake = None
+        
+    if ai_snake:
+        ai_snake.reset()
+        ai_snake = None
+        
+    if food:
+        destroy(food)
+        food = None
+        
+    if direction_hints:
+        for hint in direction_hints.hints: destroy(hint)
+        destroy(direction_hints)
+        direction_hints = None
+
     if camera_controller:
-        camera_controller.snake = snake
+        destroy(camera_controller)
+        camera_controller = None
+
+    # Force cleanup of input window if it exists
+    if highscore_input:
+        destroy(highscore_input)
+        highscore_input = None
+
+    score_text.enabled = False
+    game_over_text.enabled = False
+
+def restart_game():
+    stop_game()
+    start_game(current_mode)
+
+def show_menu():
+    stop_game()
+    leaderboard_ui.enabled = False
+    main_menu.enabled = True
+
+def show_leaderboard():
+    stop_game()
+    main_menu.enabled = False
+    leaderboard_ui.enabled = True
+    leaderboard_ui.refresh()
+
+def check_highscore_and_end(message):
+    global highscore_input
+    
+    # 1. Show Game Over text with score
+    game_over_text.text = f"{message}\nFinal Score: {score}"
+    game_over_text.color = window.color.invert()
+    game_over_text.enabled = True
+    
+    # 2. Stop movement
+    if snake: snake.direction = Vec3(0,0,0)
+    if ai_snake: ai_snake.alive = False
+
+    # 3. Check High Score
+    # The 'leaderboard' module is now correctly imported and used
+    if leaderboard.is_high_score(score):
+        # Delay slightly so user sees they died, then popup input
+        invoke(lambda: trigger_highscore_input(), delay=1.5)
+    else:
+        # If NOT a high score, explicitly tell user they can restart
+        game_over_text.text += "\n(Press 'r' to restart)\n(Press 'm' for Menu)"
+
+def trigger_highscore_input():
+    global highscore_input
+    game_over_text.enabled = False # Hide game over text
+    highscore_input = HighScoreInput(score)
 
 def update():
-    """
-    This function is called every frame by Ursina.
-    Handles player and AI snake movement, collisions, and scoring.
-    """
-    global score, game_active
-    
-    # --- 1. 相機更新 (每幀都應該平滑更新) ---
-    if camera_controller:
-        camera_controller.update() 
-    
-    # 只有在遊戲啟動時才處理移動邏輯
-    if not game_active:
-        return
+    if not snake: return # Menu mode
 
-    # --- 2. 遊戲邏輯 (僅在時間間隔達到時執行) ---
-    if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
-        snake.last_move_time = time.time()
+    # --- AI Logic ---
+    if ai_snake and ai_snake.alive and snake.direction.length() > 0:
+        ai_snake.decide_move(food, snake)
+        if ai_snake.head.position == food.position:
+            ai_snake.grow()
+            food.reposition()
         
-        # --- 2.1 玩家蛇處理 ---
-        if snake.direction.length() > 0: # 確保方向已設定
+        # AI eats Player
+        for segment in snake.body:
+            if ai_snake.head.position == segment.position:
+                check_highscore_and_end("The AI ate you!")
+                return
 
-            snake.handle_turn() # 處理轉向輸入
-            
-            # 碰撞檢測 (牆壁/自身)
+    # --- Player Logic ---
+    if snake.direction.length() > 0:
+        if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
+            snake.last_move_time = time.time()
+            snake.handle_turn()
+
             if snake.will_collide(GRID_SIZE):
                 check_highscore_and_end("You crashed!")
                 return
             
-            # 碰撞檢測 (與 AI 蛇)
             if ai_snake:
                 next_pos = snake.head.position + snake.direction.normalized()
                 for segment in ai_snake.body:
@@ -153,68 +242,32 @@ def update():
                         check_highscore_and_end("You hit the AI!")
                         return
 
-            # 執行移動
             snake.move()
 
-            # 食物檢查
             if snake.head.position == food.position:
                 snake.grow()
                 food.reposition()
                 update_score(score + 1)
 
-        # --- 2.2 AI 蛇處理 ---
-        if ai_snake and ai_snake.direction.length() > 0:
-            # AI 決策轉向 (需要 ai.py 中的 AISnake.handle_turn(food_position) 實現)
-            # 注意: 這裡假設 AISnake 的 handle_turn 方法接受食物位置
-            ai_snake.handle_turn(food.position) 
-
-            # 執行 AI 移動 (這裡假設 AI 蛇也使用相同的 SNAKE_SPEED)
-            ai_snake.move()
-
-            # AI 食物檢查
-            if ai_snake.head.position == food.position:
-                ai_snake.grow()
-                # 重新生成食物
-                food.reposition()
-
-
 def input(key):
-    """
-    This function is called by Ursina when a key is pressed.
-    """
-    global current_mode, ai_snake
+    if key == 'escape': application.quit()
+
+    if snake and snake.direction.length() > 0:
+        if key in ['w', 'a', 's', 'd', 'q', 'e', 'space', 'shift']:
+            snake.turn(key)
     
-    # 玩家方向控制
-    if key in ['w', 'a', 's', 'd', 'q', 'e']:
-        # 按下移動鍵時啟動遊戲迴圈
-        if not game_active:
-            start_game_loop()
-        snake.turn(key)
+    # RESTART/MENU LOGIC:
+    # Enabled ONLY if:
+    # 1. Game is over (snake stopped)
+    # 2. We are NOT typing a high score name (highscore_input is None)
+    if snake and snake.direction.length() == 0 and not highscore_input: 
+        if key == 'r': restart_game()
+        if key == 'm': show_menu()
 
-    # 重啟遊戲
-    if key == 'r' and not game_active: # 只有在遊戲結束時才能重啟
-        restart_game()
-    
-    # P 鍵用於切換模式
-    if key == 'p':
-        if current_mode == 'player':
-            current_mode = 'ai'
-            print("Switched to AI Mode (AI snake enabled).")
-        else:
-            current_mode = 'player'
-            print("Switched to Player Mode (AI snake disabled).")
-        
-        # 切換模式後自動重啟遊戲以應用變更
-        restart_game()
-
-
-def main():
-    """
-    Initializes and starts the game loop.
-    """
-    # 初始啟動
-    initialize_game() 
-    app.run()
+# --- STARTUP ---
+main_menu = MainMenu()
+leaderboard_ui = LeaderboardUI()
 
 if __name__ == '__main__':
-    main()
+    app.run()
+    
