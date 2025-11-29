@@ -15,13 +15,16 @@ app = Ursina(fullscreen=FULLSCREEN)
 grid = WorldGrid()
 snake = Snake()
 food = Food()
-camera_controller = SnakeCamera(snake)
+# 假設 SnakeCamera 已經在 camera.py 中正確定義
+camera_controller = SnakeCamera(snake) 
 score = 0
 score_text = Text(text=f"Score: {score}", position=(-0.85, 0.45), scale=2)
 game_over_text = Text(text="", origin=(0, 0), scale=3)
 
 # --- Game Window ---
 window.color = BACKGROUND_COLOR
+# 確保 Ursina 不會自動啟用 EditorCamera 影響你的 SnakeCamera 
+window.forced_aspect_ratio = 1.77 # 設置一個常見的螢幕比例，提升視覺效果
 
 def restart_game():
     """
@@ -46,12 +49,19 @@ def restart_game():
 
     # Update the camera to follow the new snake
     camera_controller.snake = snake
+    # 重新對齊鏡頭
+    if hasattr(camera_controller, '_snap_to_target'):
+        camera_controller._snap_to_target()
 
 def update():
     """
     This function is called every frame by Ursina.
     """
     global score
+    
+    # 關鍵修正：在每一幀更新相機的位置和視角
+    # 確保攝影機平滑地跟隨蛇頭
+    camera_controller.update() # <--- 這是讓鏡頭動起來的關鍵行！
     
     if snake.direction.length() > 0: # If game is active
         if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
@@ -79,10 +89,14 @@ def input(key):
     """
     This function is called by Ursina when a key is pressed.
     """
-    if key in ['w', 'a', 's', 'd', 'q', 'e']:
+    if key in ['w', 'a', 's', 'd']: # Removed 'q' and 'e' for roll
         snake.turn(key)
     if key == 'r' and snake.direction.length() == 0:
         restart_game()
+        
+    # 新增：可以讓使用者按下 Esc 鍵退出遊戲 (通常是好習慣)
+    if key == 'escape':
+        quit()
 
 
 def main():
