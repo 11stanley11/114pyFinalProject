@@ -61,7 +61,7 @@ def update():
     
     # 在每一幀更新相機的位置和視角
     # 確保攝影機平滑地跟隨蛇頭
-    camera_controller.update() # <--- 這是讓鏡頭動起來的關鍵行！
+    camera_controller.update() # <--- 這是讓鏡頭動起來的關鍵行
     
     if snake.direction.length() > 0: # If game is active
         if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:

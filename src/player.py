@@ -20,7 +20,7 @@ class Snake:
         self.direction = Vec3(0, 1, 0)  
         # 修正：初始 Up 向量設為 Z 軸 (與新的 Direction (Y) 正交)
         self.up = Vec3(0, 0, 1) 
-        # 新增：儲存上一次水平移動時的「右」向量，用於在垂直移動時定義 A/D 的方向記憶
+        # 儲存上一次水平移動時的「右」向量，用於在垂直移動時定義 A/D 的方向記憶
         self.horizontal_right_ref = Vec3(1, 0, 0) 
         # 新增：儲存上一次水平移動時的「前進」向量 (用於垂直狀態下的 A/D 轉向)
         self.horizontal_forward_ref = Vec3(0, 0, 1) # 初始設定為 Z 軸
@@ -56,6 +56,9 @@ class Snake:
             
             # 世界向上方向 (Y 軸)
             world_up_dir = Vec3(0, 1, 0) 
+            world_down_dir = Vec3(0, -1, 0) # 世界向下方向 (負Y 軸)
+
+            # 判斷當前是否處於垂直移動狀態 (Y 軸分量接近 +/- 1)
             is_currently_vertical = abs(self.direction.y) > 0.99
 
             # --- Yaw (A/D) ---
@@ -77,7 +80,7 @@ class Snake:
                     if abs(new_direction.y) < 0.01:
                         # 儲存當前轉向時的 'right' 向量作為水平轉向的參考
                         self.horizontal_right_ref = right 
-                        # *** 新增：儲存當前轉向時的 'forward' 向量作為水平轉向的參考 ***
+                        # 儲存當前轉向時的 'forward' 向量作為水平轉向的參考
                         self.horizontal_forward_ref = new_direction.normalized()
                     else:
                         new_up = self.up
@@ -86,7 +89,6 @@ class Snake:
                     # ** Case 2: Vertical movement (使用記憶的 A/D 轉向) **
                     
                     # 計算記憶中前進方向的 '右' 向量（垂直於 forward_ref 和世界 Up 向量）
-                    # 這樣才能得到正確的水平側轉方向
                     ref_right = self.horizontal_forward_ref.cross(world_up_dir).normalized()
                     
                     # D (Left Turn): 轉向記憶中 '前進' 向量的右方負方向
@@ -101,20 +103,26 @@ class Snake:
                 
             # --- Pitch (W/S) ---
             elif key == 'w': # Turn Up (絕對世界向上)
-                # 如果已經面朝世界向上，則不改變方向
+                # 關鍵修正：如果已經面朝世界向上，則不改變方向
                 if self.direction.normalized() == world_up_dir:
                     return 
                 
                 # 如果新方向與舊方向完全相反 (180度轉彎)，則不執行 (避免立即碰撞)
                 if self.direction.normalized() != -world_up_dir:
                     new_direction = world_up_dir
-                    # 修正：當轉向世界向上 (Y軸) 時，新的 Up 向量設為 Z 軸 (維持 Roll 鎖定)
+                    # 當轉向世界向上 (Y軸) 時，新的 Up 向量設為 Z 軸 (維持 Roll 鎖定)
                     new_up = Vec3(0, 0, 1)
+
+            elif key == 's': # Turn Down (絕對世界向下)
+                # 關鍵修正：如果已經面朝世界向下，則不改變方向
+                if self.direction.normalized() == world_down_dir:
+                    return 
                 
-            elif key == 's': # Turn Down (Pitch Down - relative)
-                # 保持 's' 為相對轉彎，允許向下探索
-                new_direction = -self.up     
-                new_up = right               
+                # 如果新方向與舊方向完全相反 (180度轉彎)，則不執行 (避免立即碰撞)
+                if self.direction.normalized() != -world_down_dir:
+                    new_direction = world_down_dir
+                    # 當轉向世界向下 (負Y軸) 時，新的 Up 向量設為 Z 軸 (維持 Roll 鎖定)
+                    new_up = Vec3(0, 0, 1)
                 
             # --- Application of new direction ---
             # 1. 確保不是 180 度轉向
