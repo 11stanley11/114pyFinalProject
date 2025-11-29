@@ -47,4 +47,3 @@ class SnakeCamera(Entity):
         # We must also align the camera's "up" with the snake's "up".
         # This ensures the world spins around you, keeping controls intuitive.
         camera.look_at(self.snake.head.position, axis='forward', up=up)
-        
