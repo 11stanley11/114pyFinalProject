@@ -73,7 +73,7 @@ class Snake:
                     if abs(new_direction.y) < 0.01:
                         new_up = world_up_dir
                         
-                    # ** 如果新的方向是水平的，更新水平記憶 **
+                    # ** 關鍵更新: 如果新的方向是水平的，更新水平記憶 **
                     if abs(new_direction.y) < 0.01:
                         # 儲存當前轉向時的 'right' 向量作為水平轉向的參考
                         self.horizontal_right_ref = right 
@@ -101,7 +101,7 @@ class Snake:
                 
             # --- Pitch (W/S) ---
             elif key == 'w': # Turn Up (絕對世界向上)
-                # 關鍵修正：如果已經面朝世界向上，則不改變方向
+                # 如果已經面朝世界向上，則不改變方向
                 if self.direction.normalized() == world_up_dir:
                     return 
                 

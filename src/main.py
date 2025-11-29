@@ -23,7 +23,7 @@ game_over_text = Text(text="", origin=(0, 0), scale=3)
 
 # --- Game Window ---
 window.color = BACKGROUND_COLOR
-# 確保 Ursina 不會自動啟用 EditorCamera 影響 SnakeCamera 
+# 確保 Ursina 不會自動啟用 EditorCamera 影響你的 SnakeCamera 
 window.forced_aspect_ratio = 1.77 # 設置一個常見的螢幕比例，提升視覺效果
 
 def restart_game():
@@ -61,7 +61,7 @@ def update():
     
     # 在每一幀更新相機的位置和視角
     # 確保攝影機平滑地跟隨蛇頭
-    camera_controller.update() 
+    camera_controller.update() # <--- 這是讓鏡頭動起來的關鍵行！
     
     if snake.direction.length() > 0: # If game is active
         if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
@@ -94,7 +94,7 @@ def input(key):
     if key == 'r' and snake.direction.length() == 0:
         restart_game()
         
-    # 新增：可以讓使用者按下 Esc 鍵退出遊戲
+    # 新增：可以讓使用者按下 Esc 鍵退出遊戲 (通常是好習慣)
     if key == 'escape':
         quit()
 
