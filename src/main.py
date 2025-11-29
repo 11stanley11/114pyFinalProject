@@ -29,13 +29,14 @@ game_over_text = Text(text="", origin=(0, 0), scale=3)
 snake = None
 food = None
 camera_controller = None
+game_active = False # 新增遊戲活躍狀態標誌
 
 # --- Game Window ---
 window.color = BACKGROUND_COLOR
 
 def check_highscore_and_end(message):
     """Checks for high score and displays game over message."""
-    global snake, game_over_text
+    global snake, game_over_text, game_active
     
     # 計算分數
     final_score = len(snake.body) - 3
@@ -44,8 +45,9 @@ def check_highscore_and_end(message):
     game_over_text.enabled = True
     score_text.enabled = False
     
-    # 停止蛇的移動
+    # 停止蛇的移動並標記遊戲結束
     snake.direction = Vec3(0, 0, 0)
+    game_active = False
     
 def initialize_game():
     """Initializes the game for the first run."""
@@ -71,12 +73,20 @@ def initialize_game():
     score_text.enabled = True
     game_over_text.enabled = False
 
+def start_game_loop():
+    """Starts the snake moving."""
+    global game_active
+    game_active = True
+    # 讓蛇開始移動 (假設初始方向為前進)
+    if snake.direction.length() == 0:
+        snake.direction = Vec3(0, 0, 1)
+
 
 def restart_game():
     """
     Resets the game to its initial state.
     """
-    global snake, food, score, score_text, game_over_text, camera_controller, ai_snake
+    global snake, food, score, score_text, game_over_text, camera_controller, ai_snake, game_active
 
     # 銷毀舊的實體
     if snake:
@@ -92,6 +102,8 @@ def restart_game():
 
     # 重新初始化遊戲
     initialize_game()
+    # 重新啟用遊戲迴圈標誌
+    game_active = False
 
 
 def update_score(new_val):
@@ -109,15 +121,24 @@ def update():
     This function is called every frame by Ursina.
     Handles player and AI snake movement, collisions, and scoring.
     """
-    global score
+    global score, game_active
     
-    # 檢查是否達到移動時間間隔
+    # --- 1. 相機更新 (每幀都應該平滑更新) ---
+    if camera_controller:
+        camera_controller.update() 
+    
+    # 只有在遊戲啟動時才處理移動邏輯
+    if not game_active:
+        return
+
+    # --- 2. 遊戲邏輯 (僅在時間間隔達到時執行) ---
     if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
         snake.last_move_time = time.time()
         
-        # --- 1. 玩家蛇處理 ---
-        if snake.direction.length() > 0: # 如果遊戲活躍
-            snake.handle_turn()
+        # --- 2.1 玩家蛇處理 ---
+        if snake.direction.length() > 0: # 確保方向已設定
+
+            snake.handle_turn() # 處理轉向輸入
             
             # 碰撞檢測 (牆壁/自身)
             if snake.will_collide(GRID_SIZE):
@@ -141,16 +162,13 @@ def update():
                 food.reposition()
                 update_score(score + 1)
 
-        # --- 2. AI 蛇處理 ---
+        # --- 2.2 AI 蛇處理 ---
         if ai_snake and ai_snake.direction.length() > 0:
             # AI 決策轉向 (需要 ai.py 中的 AISnake.handle_turn(food_position) 實現)
             # 注意: 這裡假設 AISnake 的 handle_turn 方法接受食物位置
             ai_snake.handle_turn(food.position) 
 
-            # AI 碰撞檢測 (AI 自身碰撞或牆壁碰撞)
-            # 在多人模式中，AI 應避免碰撞或死亡，但為了不干擾遊戲，我們通常只處理 AI 吃到食物。
-            
-            # 執行 AI 移動
+            # 執行 AI 移動 (這裡假設 AI 蛇也使用相同的 SNAKE_SPEED)
             ai_snake.move()
 
             # AI 食物檢查
@@ -168,10 +186,13 @@ def input(key):
     
     # 玩家方向控制
     if key in ['w', 'a', 's', 'd', 'q', 'e']:
+        # 按下移動鍵時啟動遊戲迴圈
+        if not game_active:
+            start_game_loop()
         snake.turn(key)
 
     # 重啟遊戲
-    if key == 'r' and snake.direction.length() == 0:
+    if key == 'r' and not game_active: # 只有在遊戲結束時才能重啟
         restart_game()
     
     # P 鍵用於切換模式
