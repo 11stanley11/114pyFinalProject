@@ -73,7 +73,7 @@ class Snake:
                     if abs(new_direction.y) < 0.01:
                         new_up = world_up_dir
                         
-                    # ** 關鍵更新: 如果新的方向是水平的，更新水平記憶 **
+                    # ** 如果新的方向是水平的，更新水平記憶 **
                     if abs(new_direction.y) < 0.01:
                         # 儲存當前轉向時的 'right' 向量作為水平轉向的參考
                         self.horizontal_right_ref = right 
