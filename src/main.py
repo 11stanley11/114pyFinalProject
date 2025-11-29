@@ -2,107 +2,197 @@
 Main entry point of the game.
 """
 
-from ursina import Ursina, window, Text, destroy, Vec3
+from ursina import *
 from player import Snake
 from food import Food
 from world import WorldGrid
 from camera import SnakeCamera
+from ui import DirectionHints
+from ai import AISnake
+import leaderboard
 from config import GRID_SIZE, BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED
 import time
 
-# --- Global Game Objects ---
+# --- Global Game State ---
+# 遊戲模式: 'player' (預設), 或 'ai' (啟用 AI 玩家)
+current_mode = 'player' 
+ai_snake = None # AI Snake instance
+
+# --- Setup Window ---
 app = Ursina(fullscreen=FULLSCREEN)
 grid = WorldGrid()
-snake = Snake()
-food = Food()
-# 假設 SnakeCamera 已經在 camera.py 中正確定義
-camera_controller = SnakeCamera(snake) 
 score = 0
 score_text = Text(text=f"Score: {score}", position=(-0.85, 0.45), scale=2)
 game_over_text = Text(text="", origin=(0, 0), scale=3)
 
+# 初始化變數
+snake = None
+food = None
+camera_controller = None
+
 # --- Game Window ---
 window.color = BACKGROUND_COLOR
-# 確保 Ursina 不會自動啟用 EditorCamera 影響你的 SnakeCamera 
-window.forced_aspect_ratio = 1.77 # 設置一個常見的螢幕比例，提升視覺效果
+
+def check_highscore_and_end(message):
+    """Checks for high score and displays game over message."""
+    global snake, game_over_text
+    
+    # 計算分數
+    final_score = len(snake.body) - 3
+    
+    game_over_text.text = f"GAME OVER! {message}\nScore: {final_score}\nPress R to Restart"
+    game_over_text.enabled = True
+    score_text.enabled = False
+    
+    # 停止蛇的移動
+    snake.direction = Vec3(0, 0, 0)
+    
+def initialize_game():
+    """Initializes the game for the first run."""
+    global snake, food, camera_controller, ai_snake
+    
+    # 創建玩家蛇
+    snake = Snake()
+    # 創建食物
+    food = Food()
+    # 創建鏡頭控制器
+    camera_controller = SnakeCamera(snake)
+    # 創建方向提示 UI
+    DirectionHints(snake)
+
+    # 根據模式創建 AI 蛇
+    if current_mode == 'ai':
+        # 假設 AI 從不同的起始位置開始，以避免與玩家蛇碰撞
+        ai_snake = AISnake(start_pos=(3, 0, 3)) 
+    else:
+        ai_snake = None
+    
+    update_score(0)
+    score_text.enabled = True
+    game_over_text.enabled = False
+
 
 def restart_game():
     """
     Resets the game to its initial state.
     """
-    global snake, food, score, score_text, game_over_text, camera_controller
+    global snake, food, score, score_text, game_over_text, camera_controller, ai_snake
 
-    # Destroy old entities
-    for segment in snake.body:
-        destroy(segment)
-    destroy(snake.head_marker)
-    destroy(food)
+    # 銷毀舊的實體
+    if snake:
+        for segment in snake.body:
+            destroy(segment)
+        destroy(snake.head_marker)
+    if food:
+        destroy(food)
+    if ai_snake:
+        for segment in ai_snake.body:
+            destroy(segment)
+        destroy(ai_snake.head_marker)
 
-    # Create new entities
-    snake = Snake()
-    food = Food()
+    # 重新初始化遊戲
+    initialize_game()
 
-    # Reset score and text
-    score = 0
+
+def update_score(new_val):
+    global score
+    score = new_val
     score_text.text = f"Score: {score}"
     game_over_text.text = ""
 
-    # Update the camera to follow the new snake
-    camera_controller.snake = snake
-    # 重新對齊鏡頭
-    if hasattr(camera_controller, '_snap_to_target'):
-        camera_controller._snap_to_target()
+    # 更新鏡頭以追蹤新的蛇
+    if camera_controller:
+        camera_controller.snake = snake
 
 def update():
     """
     This function is called every frame by Ursina.
+    Handles player and AI snake movement, collisions, and scoring.
     """
     global score
     
-    # 在每一幀更新相機的位置和視角
-    # 確保攝影機平滑地跟隨蛇頭
-    camera_controller.update() # <--- 這是讓鏡頭動起來的關鍵行
-    
-    if snake.direction.length() > 0: # If game is active
-        if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
-            snake.last_move_time = time.time()
-
+    # 檢查是否達到移動時間間隔
+    if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
+        snake.last_move_time = time.time()
+        
+        # --- 1. 玩家蛇處理 ---
+        if snake.direction.length() > 0: # 如果遊戲活躍
             snake.handle_turn()
-
-            # Check for game over
-            if snake.will_collide(GRID_SIZE):
-                game_over_text.text = "Game Over\n(Press 'r' to restart)"
-                game_over_text.color = window.color.invert()
-                snake.direction = Vec3(0, 0, 0)  # Stop the snake
-                return # Skip the rest of the update
             
+            # 碰撞檢測 (牆壁/自身)
+            if snake.will_collide(GRID_SIZE):
+                check_highscore_and_end("You crashed!")
+                return
+            
+            # 碰撞檢測 (與 AI 蛇)
+            if ai_snake:
+                next_pos = snake.head.position + snake.direction.normalized()
+                for segment in ai_snake.body:
+                    if next_pos == segment.position:
+                        check_highscore_and_end("You hit the AI!")
+                        return
+
+            # 執行移動
             snake.move()
 
-            # Check for collision with food
+            # 食物檢查
             if snake.head.position == food.position:
                 snake.grow()
                 food.reposition()
-                score += 1
-                score_text.text = f"Score: {score}"
+                update_score(score + 1)
+
+        # --- 2. AI 蛇處理 ---
+        if ai_snake and ai_snake.direction.length() > 0:
+            # AI 決策轉向 (需要 ai.py 中的 AISnake.handle_turn(food_position) 實現)
+            # 注意: 這裡假設 AISnake 的 handle_turn 方法接受食物位置
+            ai_snake.handle_turn(food.position) 
+
+            # AI 碰撞檢測 (AI 自身碰撞或牆壁碰撞)
+            # 在多人模式中，AI 應避免碰撞或死亡，但為了不干擾遊戲，我們通常只處理 AI 吃到食物。
+            
+            # 執行 AI 移動
+            ai_snake.move()
+
+            # AI 食物檢查
+            if ai_snake.head.position == food.position:
+                ai_snake.grow()
+                # 重新生成食物
+                food.reposition()
+
 
 def input(key):
     """
     This function is called by Ursina when a key is pressed.
     """
-    if key in ['w', 'a', 's', 'd']: # Removed 'q' and 'e' for roll
+    global current_mode, ai_snake
+    
+    # 玩家方向控制
+    if key in ['w', 'a', 's', 'd', 'q', 'e']:
         snake.turn(key)
+
+    # 重啟遊戲
     if key == 'r' and snake.direction.length() == 0:
         restart_game()
+    
+    # P 鍵用於切換模式
+    if key == 'p':
+        if current_mode == 'player':
+            current_mode = 'ai'
+            print("Switched to AI Mode (AI snake enabled).")
+        else:
+            current_mode = 'player'
+            print("Switched to Player Mode (AI snake disabled).")
         
-    # 新增：可以讓使用者按下 Esc 鍵退出遊戲 (通常是好習慣)
-    if key == 'escape':
-        quit()
+        # 切換模式後自動重啟遊戲以應用變更
+        restart_game()
 
 
 def main():
     """
-    This function is now only responsible for starting the game.
+    Initializes and starts the game loop.
     """
+    # 初始啟動
+    initialize_game() 
     app.run()
 
 if __name__ == '__main__':

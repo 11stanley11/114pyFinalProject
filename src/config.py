@@ -17,3 +17,6 @@ SNAKE_COLOR = color.green
 FOOD_COLOR = color.red
 GRID_COLOR = color.gray
 BOUNDARY_COLOR = color.light_gray
+
+AI_COLOR = color.orange
+AI_SPEED = 2  # Make it slightly slower than player so it's fair

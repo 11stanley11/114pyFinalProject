@@ -1,5 +1,7 @@
+
 from ursina import camera, Vec3, lerp, time, Entity # 引入 Entity
 import math
+
 
 class SnakeCamera(Entity):
     """
