@@ -5,7 +5,7 @@ import math
 
 class SnakeCamera(Entity):
     """
-    軌道追蹤攝影機 (Orbital Tracking Camera)。
+    軌道追蹤攝影機 (Orbital Tracking Camera) - 最終修正版。
     鏡頭繞著 grid_center (Y軸) 旋轉，追蹤蛇頭的位置。
     鏡頭和視線點的高度現在會跟隨蛇頭 Y 座標移動，確保蛇在 3D 空間中始終位於畫面中心。
     """
@@ -61,9 +61,7 @@ class SnakeCamera(Entity):
         """遊戲開始時瞬間定位鏡頭。"""
         pos, look = self._target_position_and_look()
         camera.position = pos
-        # 修正：移除無效的 up=Vec3.up 參數
         camera.look_at(look) 
-        # 修正：強制 Z 軸旋轉為 0，確保 Y 軸直立
         camera.rotation_z = 0
 
     def update(self):
