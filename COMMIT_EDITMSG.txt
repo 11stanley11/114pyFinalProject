@@ -1,0 +1,19 @@
+feat(leaderboard, ui): Implement dynamic mode-specific leaderboard and player name system
+
+This commit introduces a significantly refactored leaderboard experience and persistent player name management.
+
+Key changes include:
+- **Mode-Specific Leaderboard:** The `highscores.json` structure now supports separate top 10 scores for 'classic' and 'ai' game modes.
+- **Integrated UI:** The leaderboard display is now part of the `MainMenu` UI, appearing in the bottom-left corner. It dynamically updates when switching between game modes.
+- **Improved Leaderboard Display:**
+  - Layout has been refined for better alignment, with separate columns for player name (left-aligned) and score (center-aligned).
+  - Empty score entries are now represented by placeholders (`-`).
+  - Player's current name is highlighted in blue if they appear on the leaderboard for the selected mode.
+- **Persistent Player Name Input:** A "Currently playing as:" input field has been added to the `MainMenu`, allowing players to enter their name once per session.
+- **Smart High Score Saving:** Scores are now automatically saved to the `highscores.json` based on the active player name and game mode. The system ensures only the highest score for a given player per mode is recorded, preventing duplicate entries. Guest players' scores are not saved.
+- **Animation Enhancements:**
+  - Corrected the mode switching animation direction for `btn_next`.
+  - Added smooth fade-in/fade-out effects during mode transitions.
+- **UI Element Refinements:** Ensured the "PLAY" button's font and text color are correctly applied, and addressed various positioning and font display issues for the player name input field.
+
+This commit lays the groundwork for a more robust scorekeeping and user identity system, paving the way for upcoming features like a dedicated Game Over UI and comprehensive settings.
