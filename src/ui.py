@@ -251,18 +251,66 @@ class MainMenu(Entity):
         self.btn_settings = Button(model='quad', texture='../assets/settingsIcon.png', scale=(0.06, 0.06), position=(0.69, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_settings.on_click = self.toggle_settings
 
-        # Settings Panel (Hidden by default)
-        self.settings_panel = Entity(parent=self, enabled=False, z=-2)
-        Entity(parent=self.settings_panel, model='quad', scale=(0.8, 0.6), color=color.dark_gray)
-        Text(text='Settings Panel\n(Work in Progress)', parent=self.settings_panel, origin=(0,0), scale=2, font=REGULAR_FONT)
-        self.btn_close_settings = Button(text='Close', parent=self.settings_panel, scale=(0.2, 0.05), y=-0.2, color=color.red, font=REGULAR_FONT)
-        self.btn_close_settings.on_click = self.toggle_settings
-
         # Quit Button (Bottom Right, right of Settings)
         self.btn_quit = Button(model='quad', texture='../assets/quitIcon.png', scale=(0.045, 0.045), position=(0.75, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_quit.on_click = self.quit_callback
 
+        # --- Settings Panel (Bottom Right) ---
+        # Panel Background
+        self.settings_panel = Entity(parent=self, position=(0.6, -0.2), enabled=False, z=-2)
+        Entity(parent=self.settings_panel, model='quad', scale=(0.35, 0.4), color=color.black66, origin=(0,0))
+        
+        # Title
+        Text(text='Camera & Input Mode', parent=self.settings_panel, scale=0.8, y=0.16, origin=(0,0), color=color.white, font=BOLD_FONT)
+        Entity(parent=self.settings_panel, model='quad', scale=(0.3, 0.002), y=0.13, color=color.gray)
+
+        # --- Toggles ---
+        self.selected_cam_mode = 'follow' # Default
+        self.cam_toggles = {} # To store buttons for visual updating
+
+        # Helper to create rows
+        def create_option(key, name, desc, y_pos):
+            # Container for click detection
+            btn = Button(parent=self.settings_panel, scale=(0.3, 0.1), position=(0, y_pos), color=color.clear, highlight_color=color.black33)
+            
+            # Text Elements
+            t_name = Text(text=name, parent=self.settings_panel, position=(-0.15, y_pos+0.015), origin=(-0.5, 0), scale=1.0, font=REGULAR_FONT, color=color.white)
+            t_desc = Text(text=desc, parent=self.settings_panel, position=(-0.15, y_pos-0.015), origin=(-0.5, 0), scale=0.8, font=REGULAR_FONT, color=color.light_gray)
+            
+            # Indicator (Checkmark/Dot box)
+            indicator = Entity(parent=btn, model='quad', scale=(0.05, 0.5), position=(0.45, 0), color=color.dark_gray)
+            
+            # Store reference
+            self.cam_toggles[key] = {'btn': btn, 'indicator': indicator, 'name': t_name}
+            
+            # Click Handler
+            btn.on_click = lambda: self.set_camera_mode(key)
+
+        # create_option('orbital', 'Orbital Cam', 'Rotates around grid + Standard Input', 0.08)
+        # create_option('topdown', 'Top Down', 'Bird\'s eye view + Standard Input', -0.02)
+        # create_option('follow', 'Follow Cam', 'Classic behind view + Free Roam', -0.12)
+        
+        create_option('orbital', 'Orbital Cam', 'Rotates around grid', 0.07) # + standard input
+        create_option('topdown', 'Top Down', 'Bird\'s eye view', -0.03) # + standard input
+        create_option('follow', 'Action Cam', 'Classic behind view', -0.13) # + free roam input
+
+        # Highlight default
+        self.update_settings_ui()
         self.update_mode_display()
+
+    def set_camera_mode(self, mode):
+        self.selected_cam_mode = mode
+        self.update_settings_ui()
+        print(f"Selected Mode: {mode}")
+
+    def update_settings_ui(self):
+        for key, ui in self.cam_toggles.items():
+            if key == self.selected_cam_mode:
+                ui['indicator'].color = color.azure
+                ui['name'].color = color.azure
+            else:
+                ui['indicator'].color = color.dark_gray
+                ui['name'].color = color.white
 
     def update_leaderboard(self):
         mode_key = self.modes[self.current_mode_index]['key']
@@ -299,38 +347,29 @@ class MainMenu(Entity):
         self.mode_name_text.text = mode_data['name']
         self.mode_desc_text.text = mode_data['desc']
         self.mode_name_text.color = mode_data['color']
-        # Update image here if we had textures: self.mode_image.texture = mode_data['img']
         self.update_leaderboard()
 
     def change_mode(self, direction):
-        # direction: 1 = Next, -1 = Prev
         offset = 0.6 
         duration = 0.3
-        
-        # Calculate animation offset based on direction
         anim_offset = offset * direction
 
-        # Ghost for the outgoing text (Visual Copy)
         ghost = Entity(parent=self, position=self.mode_display.position)
         Text(text=self.mode_name_text.text, parent=ghost, scale=2, origin=(0,0), y=-0.025, color=self.mode_name_text.color, z=-1, font=REGULAR_FONT)
         Text(text=self.mode_desc_text.text, parent=ghost, scale=1, origin=(0,0), y=-0.075, color=self.mode_desc_text.color, z=-1, font=REGULAR_FONT)
         
-        # Animate ghost exiting
         ghost.animate_x(ghost.x + anim_offset, duration=duration, curve=curve.out_expo)
         for child in ghost.children:
             child.animate('alpha', 0, duration=duration, curve=curve.out_expo)
             
         destroy(ghost, delay=duration + 0.1)
         
-        # Update real data
         self.current_mode_index = (self.current_mode_index + direction) % len(self.modes)
         self.update_mode_display()
         
-        # Teleport incoming to start position and animate in
         self.mode_display.x = -anim_offset
         self.mode_display.animate_x(0, duration=duration, curve=curve.out_expo)
 
-        # Animate incoming fade-in
         for child in self.mode_display.children:
             child.alpha = 0
             child.animate('alpha', 1, duration=duration, curve=curve.out_expo)
@@ -345,7 +384,13 @@ class MainMenu(Entity):
         selected_mode = self.modes[self.current_mode_index]['key']
         player_name = self.name_input.text
         if not player_name: player_name = "Guest"
-        self.start_game_callback(selected_mode, player_name)
+        
+        # Pass the selected camera mode to the start_game_callback
+        # We need to update main.py to accept this extra argument, or handle it globally?
+        # Ideally, main.py should read this value or accept it.
+        # For now, let's assume we pass it as a kwarg or main.py will need adjustment.
+        # Let's verify main.py logic.
+        self.start_game_callback(selected_mode, player_name, self.selected_cam_mode)
     
     def toggle_settings(self):
         self.settings_panel.enabled = not self.settings_panel.enabled

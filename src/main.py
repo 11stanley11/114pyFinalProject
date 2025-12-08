@@ -41,7 +41,7 @@ score = 0
 
 # --- GAME LOGIC ---
 
-def start_game(mode, player_name="Guest"):
+def start_game(mode, player_name="Guest", cam_mode='follow'):
     global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud
     
     main_menu.enabled = False
@@ -53,6 +53,11 @@ def start_game(mode, player_name="Guest"):
     snake = Snake()
     # direction_hints = DirectionHints(snake)
     
+    if cam_mode in ['orbital', 'topdown']:                                                                                                             
+       snake.set_strategy('standard')                                                                                                                 
+    else:                                                                                                                                                                                                                                                                           
+        snake.set_strategy('free_roam')
+
     if current_mode == 'ai':
         ai_snake = AISnake(start_pos=(3, 0, 3))
     else:
