@@ -28,26 +28,134 @@ def set_high_score(score):
     with open(HIGH_SCORE_FILE, "w") as f:
         f.write(str(score))
 
-class GameOverUI(Entity):
-    def __init__(self, current_score, restart_func, **kwargs):
+class GameHUD(Entity):
+    def __init__(self, player_name, current_mode, **kwargs):
         super().__init__(parent=camera.ui, **kwargs)
-
-        high_score = get_high_score()
-        if current_score > high_score:
-            set_high_score(current_score)
-            high_score = current_score
+        self.player_name = player_name
+        self.current_mode = current_mode
+        self.high_score = 0
+        self.margin = 0.025 # Distance from the edge
         
-        self.window = WindowPanel(
-            title='Game Over',
-            content=[
-                Text(f'Score: {current_score}', font=REGULAR_FONT),
-                Text(f'High Score: {high_score}', font=REGULAR_FONT),
-                Button('Restart', on_click=restart_func, font=REGULAR_FONT),
-                Text("(Press 'r' to restart)", origin=(0, -2), font=REGULAR_FONT)
-            ],
-            popup=True,
-            enabled=True
-        )
+        # Current Score (Top Left)
+        # Position will be set in update()
+        self.score_text = Text(text='Score: 0', origin=(-0.5, 0.5), scale=1.5, color=color.white, font=REGULAR_FONT, parent=self)
+        
+        # High Score (Top Right)
+        if player_name != "Guest":
+            scores = leaderboard.load_scores(current_mode)
+            for entry in scores:
+                if entry['name'] == player_name:
+                    self.high_score = entry['score']
+                    break
+            
+            self.high_score_text = Text(text=f'High Score: {self.high_score}', origin=(0.5, 0.5), scale=1.5, color=color.white, font=REGULAR_FONT, parent=self)
+        else:
+            self.high_score_text = None
+
+        # Run one update immediately to set initial positions
+        self.update()
+
+    def update(self):
+        # Dynamically anchor to window corners
+        # window.top_left is usually (-aspect_ratio/2, 0.5)
+        
+        if self.score_text:
+            self.score_text.position = (window.top_left.x + self.margin, window.top_left.y - self.margin)
+            
+        if self.high_score_text:
+            self.high_score_text.position = (window.top_right.x - self.margin, window.top_right.y - self.margin)
+
+    def update_score(self, current_score):
+        self.score_text.text = f'Score: {current_score}'
+        
+        if self.high_score_text:
+            if current_score > self.high_score:
+                self.high_score_text.text = f'High Score: {current_score}'
+                self.high_score_text.color = color.yellow
+            else:
+                self.high_score_text.color = color.white
+
+class GameOverUI(Entity):
+    def __init__(self, player_name, score, current_mode, restart_callback, menu_callback, **kwargs):
+        super().__init__(parent=camera.ui, ignore_paused=True, **kwargs)
+        
+        self.restart_callback = restart_callback
+        self.menu_callback = menu_callback
+
+        # Background Overlay
+        self.bg = Entity(parent=self, model='quad', scale=(20, 10), color=color.black66, z=11)
+
+        # --- Central Panel ---
+        self.panel = Entity(parent=self, model='quad', scale=(0.5, 0.4), color=color.black33, z=10) # Adjusted z for layering
+        # Removed self.panel_border as requested
+
+        # Title
+        Text(text='GAME OVER', parent=self.panel, scale=5.5, y=0.2, origin=(0,0), color=color.red, font=BOLD_FONT)
+        
+        # Player Name 
+        Text(text=f'Player: {player_name}', parent=self.panel, scale=2, y=0.05, origin=(0,0), color=color.azure, font=REGULAR_FONT)
+        
+        # Score
+        Text(text=f'Score: {score}', parent=self.panel, scale=2.3, position=(-0.2, -0.05), origin=(0,0), color=color.white, font=REGULAR_FONT)
+
+        # Highscore (Fetch from leaderboard)
+        scores = leaderboard.load_scores(current_mode)
+        player_highscore = score # Default to current if not found
+        for entry in scores:
+            if entry['name'] == player_name:
+                player_highscore = entry['score']
+                break
+        
+        # High Score
+        Text(text=f'High Score: {player_highscore}', parent=self.panel, scale=2.3, position=(0.2, -0.05), origin=(0,0), color=color.gold, font=REGULAR_FONT)
+
+        # Buttons (adjusted y position)
+        # Restart
+        self.btn_restart = Button(text='Restart', color=color.gray, text_color=color.white, scale=(0.3, 0.1), position=(-0.2, -0.20), highlight_text_color=color.green, parent=self.panel, font=ITALIC_FONT)
+        self.btn_restart.on_click = self.restart_callback
+        self.btn_restart.text_entity.font = ITALIC_FONT
+        # Hint
+        Text(text='(Press R)', parent=self.panel, scale=1.3, position=(-0.2, -0.275), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
+
+        # Menu
+        self.btn_menu = Button(text='Main Menu', color=color.azure, scale=(0.3, 0.1), position=(0.2, -0.20), parent=self.panel, font=REGULAR_FONT)
+        self.btn_menu.on_click = self.menu_callback
+        self.btn_menu.text_entity.font = REGULAR_FONT
+        # Hint
+        Text(text='(Press M)', parent=self.panel, scale=1.3, position=(0.2, -0.275), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
+        # --- Leaderboard Panel (Bottom Left) ---
+        self.leaderboard_container = Entity(parent=self, position=(-0.65, -0.2), z=-10) # Adjusted z for layering
+        Entity(parent=self.leaderboard_container, model='quad', scale=(0.3, 0.4), color=color.black50, origin=(0,0))
+        
+        Text(text='Leaderboard', parent=self.leaderboard_container, scale=1.2, y=0.15, origin=(0,0), color=color.gold, font=BOLD_FONT)
+        
+        # Headers
+        Text(text='Name', parent=self.leaderboard_container, scale=0.8, position=(-0.09, 0.10), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
+        Text(text='Score', parent=self.leaderboard_container, scale=0.8, position=(0.08, 0.10), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
+        Entity(parent=self.leaderboard_container, model='quad', scale=(0.25, 0.002), y=0.075, color=color.gray)
+
+        # Rows
+        start_y = 0.065
+        row_height = 0.025
+        # Sort and limit scores just in case (though load_scores should handle it)
+        scores = sorted(scores, key=lambda x: x['score'], reverse=True)[:10]
+
+        for i in range(10):
+            y_pos = start_y - (i * row_height)
+            name_txt = "-"
+            score_txt = "-"
+            col = color.white
+            
+            if i < len(scores):
+                entry = scores[i]
+                name_txt = entry['name'][:10]
+                score_txt = str(entry['score'])
+                if entry['name'] == player_name and player_name != "Guest":
+                    col = color.azure
+            
+            Text(text=name_txt, parent=self.leaderboard_container, scale=0.75, position=(-0.12, y_pos), origin=(-0.5, 0.5), color=col, font=REGULAR_FONT)
+            Text(text=score_txt, parent=self.leaderboard_container, scale=0.75, position=(0.08, y_pos), origin=(0, 0.5), color=col, font=REGULAR_FONT)
+
 
 
 class MainMenu(Entity):
@@ -91,7 +199,7 @@ class MainMenu(Entity):
         self.btn_next.on_click = self.next_mode
 
         # Play Button (Bottom of the center group)
-        self.btn_play = Button(text='PLAY', color=color.gray, scale=(0.15, 0.04), position=(0, -0.175), parent=self, z=-1, highlight_text_color=color.green, font=ITALIC_FONT)
+        self.btn_play = Button(text='PLAY', color=color.gray, text_size=1.25, scale=(0.175, 0.06), position=(0, -0.2), parent=self, z=-1, highlight_text_color=color.green, font=ITALIC_FONT)
         self.btn_play.on_click = self.on_play
         # Explicitly set font and color for the button's text entity
         self.btn_play.text_entity.font = ITALIC_FONT

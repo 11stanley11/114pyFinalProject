@@ -11,7 +11,7 @@ from camera import SnakeCamera
 from ai import AISnake
 import leaderboard
 from config import GRID_SIZE, BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED
-from ui import GameOverUI, MainMenu
+from ui import GameOverUI, MainMenu, GameHUD
 import time
 
 # --- Setup Window ---
@@ -32,16 +32,17 @@ current_player_name = "Guest"
 
 # UI States
 main_menu = None
+game_over_ui = None
+game_hud = None
 
 # Game UI Elements
 score = 0
-score_text = Text(text="", position=(-0.85, 0.45), scale=2, enabled=False)
-game_over_text = Text(text="", origin=(0, 0), scale=3, enabled=False)
+# score_text and game_over_text removed in favor of GameHUD and GameOverUI
 
 # --- GAME LOGIC ---
 
 def start_game(mode, player_name="Guest"):
-    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name
+    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud
     
     main_menu.enabled = False
     current_mode = mode
@@ -60,17 +61,20 @@ def start_game(mode, player_name="Guest"):
     food = Food()
     camera_controller = SnakeCamera(snake)
     
+    # Initialize HUD
+    if game_hud: destroy(game_hud)
+    game_hud = GameHUD(player_name, current_mode)
+    
     update_score(0)
-    score_text.enabled = True
-    game_over_text.enabled = False
 
 def update_score(new_val):
     global score
     score = new_val
-    score_text.text = f"Score: {score}"
+    if game_hud:
+        game_hud.update_score(score)
 
 def stop_game():
-    global snake, ai_snake, food, direction_hints, camera_controller
+    global snake, ai_snake, food, direction_hints, camera_controller, game_over_ui, game_hud
     
     if snake:
         for segment in snake.body: destroy(segment)
@@ -94,8 +98,13 @@ def stop_game():
         destroy(camera_controller)
         camera_controller = None
 
-    score_text.enabled = False
-    game_over_text.enabled = False
+    if game_over_ui:
+        destroy(game_over_ui)
+        game_over_ui = None
+
+    if game_hud:
+        destroy(game_hud)
+        game_hud = None
 
 def restart_game():
     stop_game()
@@ -107,13 +116,18 @@ def show_menu():
     main_menu.enabled = True
 
 def check_highscore_and_end(message):
+    global game_over_ui
     # Save score immediately using the current player name
     leaderboard.save_new_score(current_player_name, score, current_mode)
     
-    # 1. Show Game Over text with score
-    game_over_text.text = f"{message}\nFinal Score: {score}\n(Press 'r' to restart)\n(Press 'm' for Menu)"
-    game_over_text.color = window.color.invert()
-    game_over_text.enabled = True
+    # Instantiate GameOverUI
+    game_over_ui = GameOverUI(
+        player_name=current_player_name,
+        score=score,
+        current_mode=current_mode,
+        restart_callback=restart_game,
+        menu_callback=show_menu
+    )
     
     # 2. Stop movement
     if snake: snake.direction = Vec3(0,0,0)
