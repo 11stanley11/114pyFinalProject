@@ -123,7 +123,6 @@ class Snake:
             Entity(model='cube', color=SNAKE_COLOR, scale=1, position=(0, -2, 0))
         ]
         self.head = self.body[0]
-        self.head_marker = Entity(model='cube', color=color.yellow, scale=(0.5, 0.1, 0.5))
         
         self.direction = Vec3(0, 1, 0) 
         self.up = Vec3(0, 0, 1) 
@@ -183,10 +182,6 @@ class Snake:
             self.body[i].position = self.body[i - 1].position
 
         self.head.position += self.direction.normalized()
-
-        self.head_marker.position = self.head.position + self.up * 0.5
-        self.head_marker.world_up = self.up
-        self.head_marker.look_at(self.head.position + self.direction)
 
     def grow(self):
         new_segment = Entity(model='cube', color=SNAKE_COLOR, scale=1, position=self.body[-1].position)

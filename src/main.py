@@ -41,6 +41,14 @@ score = 0
 
 # --- GAME LOGIC ---
 
+def get_occupied_positions():
+    positions = []
+    if snake:
+        positions.extend([s.position for s in snake.body])
+    if ai_snake:
+        positions.extend([s.position for s in ai_snake.body])
+    return positions
+
 def start_game(mode, player_name="Guest", cam_mode='follow'):
     global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud
     
@@ -63,7 +71,7 @@ def start_game(mode, player_name="Guest", cam_mode='follow'):
     else:
         ai_snake = None 
 
-    food = Food()
+    food = Food(occupied_positions=get_occupied_positions())
     camera_controller = SnakeCamera(snake)
     
     # Initialize HUD
@@ -83,7 +91,7 @@ def stop_game():
     
     if snake:
         for segment in snake.body: destroy(segment)
-        destroy(snake.head_marker)
+        # destroy(snake.head_marker)
         snake = None
         
     if ai_snake:
@@ -146,7 +154,7 @@ def update():
         ai_snake.decide_move(food, snake)
         if ai_snake.head.position == food.position:
             ai_snake.grow()
-            food.reposition()
+            food.reposition(occupied_positions=get_occupied_positions())
         
         # AI eats Player
         for segment in snake.body:
@@ -175,7 +183,7 @@ def update():
 
             if snake.head.position == food.position:
                 snake.grow()
-                food.reposition()
+                food.reposition(occupied_positions=get_occupied_positions())
                 update_score(score + 1)
 
 def input(key):
