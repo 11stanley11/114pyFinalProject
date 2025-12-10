@@ -8,13 +8,25 @@ class AISnake:
     def __init__(self, start_pos=(5, 0, 5)):
         self.body = [
             Entity(model='cube', color=AI_COLOR, scale=1, position=start_pos),
-            Entity(model='cube', color=AI_COLOR, scale=1, position=(start_pos[0], start_pos[1]-1, start_pos[2]))
+            Entity(model='cube', color=AI_COLOR, scale=1, position=(start_pos[0], start_pos[1]-1, start_pos[2])),
+            Entity(model='cube', color=AI_COLOR, scale=1, position=(start_pos[0], start_pos[1]-2, start_pos[2]))
         ]
         self.head = self.body[0]
         self.direction = Vec3(0, 1, 0)
         self.last_move_time = time.time()
         self.speed = AI_SPEED
         self.alive = True
+        self.update_appearance()
+
+    def update_appearance(self):
+        num_segments = len(self.body)
+        if num_segments <= 1:
+            self.head.color = AI_COLOR
+            return
+
+        for i, segment in enumerate(self.body):
+            alpha = 1.0 - (i / (num_segments - 1)) * 0.8
+            segment.color = color.Color(AI_COLOR.r, AI_COLOR.g, AI_COLOR.b, alpha)
 
     def get_valid_moves(self, player_snake, grid_size):
         """
@@ -107,23 +119,13 @@ class AISnake:
         
         # Visual: Make AI look where it's going
         self.head.look_at(self.head.position + self.direction)
+        self.update_appearance()
 
     def grow(self):
         new_segment = Entity(model='cube', color=AI_COLOR, scale=1, position=self.body[-1].position)
         self.body.append(new_segment)
+        self.update_appearance()
     
     def reset(self):
         for segment in self.body:
             destroy(segment)
-    def will_collide_self(self, grid_size):
-        """
-        檢查 AI 蛇是否會在下一步撞到自己。
-        """
-        # 計算 AI 蛇的下一步位置
-        next_head_position = self.head.position + self.direction.normalized()
-
-        # 檢查自身碰撞 (從第二段身體開始檢查)
-        for segment in self.body[1:]:
-            if next_head_position == segment.position:
-                return True
-        return False
