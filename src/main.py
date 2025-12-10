@@ -14,7 +14,6 @@ from config import GRID_SIZE, BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED
 from ui import GameOverUI, MainMenu, GameHUD
 import time
 
-# --- Setup Window ---
 app = Ursina(fullscreen=FULLSCREEN)
 window.color = BACKGROUND_COLOR
 window.title = "3D Snake - Group Project"
@@ -59,7 +58,6 @@ def start_game(mode, player_name="Guest", cam_mode='follow'):
     current_cam_mode = cam_mode
     
     if not grid: grid = WorldGrid()
-    
     snake = Snake()
     # direction_hints = DirectionHints(snake)
     
@@ -96,20 +94,14 @@ def stop_game():
         for segment in snake.body: destroy(segment)
         # destroy(snake.head_marker)
         snake = None
-        
-    if ai_snake:
-        ai_snake.reset()
-        ai_snake = None
-        
+    if ai_snake: ai_snake.reset()
     if food:
         destroy(food)
         food = None
-        
     if direction_hints:
         for hint in direction_hints.hints: destroy(hint)
         destroy(direction_hints)
         direction_hints = None
-
     if camera_controller:
         destroy(camera_controller)
         camera_controller = None
@@ -156,8 +148,12 @@ def update():
     #     print(f"Camera: {camera_controller.current_mode_name} | Input: {type(snake.current_strategy).__name__}")
 
     # --- AI Logic ---
-    if ai_snake and ai_snake.alive and snake.direction.length() > 0:
-        ai_snake.decide_move(food, snake)
+    if ai_snake and ai_snake.alive:
+        ai_snake.decide_move(food, snake) 
+        if ai_snake.will_collide_self(GRID_SIZE):
+            ai_snake.alive = False
+            check_highscore_and_end("The AI crashed into itself!")
+            return 
         if ai_snake.head.position == food.position:
             ai_snake.grow()
             food.reposition(occupied_positions=get_occupied_positions())
@@ -169,17 +165,20 @@ def update():
                 return
 
     # --- Player Logic ---
-    if snake.direction.length() > 0:
-        if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
-            snake.last_move_time = time.time()
-            snake.handle_turn()
+    # 速度控制
+    if time.time() - snake.last_move_time > 1 / SNAKE_SPEED:
+        snake.last_move_time = time.time()
+        
+        snake.handle_turn()
 
+        if snake.direction.length() > 0.001:
+            next_pos = snake.head.position + snake.direction.normalized()
+            
             if snake.will_collide(GRID_SIZE):
                 check_highscore_and_end("You crashed!")
                 return
             
             if ai_snake:
-                next_pos = snake.head.position + snake.direction.normalized()
                 for segment in ai_snake.body:
                     if next_pos == segment.position:
                         check_highscore_and_end("You hit the AI!")
@@ -191,13 +190,36 @@ def update():
                 snake.grow()
                 food.reposition(occupied_positions=get_occupied_positions())
                 update_score(score + 1)
+        else:
+            # 如果速度為0，嘗試重置為預設方向 (避免永遠卡住)
+            # snake.direction = Vec3(0,1,0)
+            pass 
 
 def input(key):
+    global highscore_input
     if key == 'escape': application.quit()
 
-    if snake and snake.direction.length() > 0:
-        if key in ['w', 'a', 's', 'd', 'q', 'e', 'space', 'shift']:
-            snake.turn(key)
+    mapped_key = None
+    if key == 'gamepad dpad up': mapped_key = 'w'
+    elif key == 'gamepad dpad down': mapped_key = 's'
+    elif key == 'gamepad dpad left': mapped_key = 'a'
+    elif key == 'gamepad dpad right': mapped_key = 'd'
+    elif key == 'gamepad a': mapped_key = '1'  
+    elif key == 'gamepad b': mapped_key = '2' 
+    elif key == 'gamepad x': mapped_key = 'm' 
+
+    final_key = mapped_key if mapped_key else key
+
+    if snake and not game_over_text.enabled:
+        valid_keys = ['w', 'a', 's', 'd', 'q', 'e', '1', '2']
+        if final_key in valid_keys:
+            snake.turn(final_key)
+            
+        if key == 'gamepad right shoulder' or key == 'gamepad left shoulder' or key == 'c':
+            if "Free Roam" in snake.current_strategy.get_name():
+                snake.turn('1') 
+            else:
+                snake.turn('2') 
     
     # RESTART/MENU LOGIC:
     if snake and snake.direction.length() == 0: 

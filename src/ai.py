@@ -129,3 +129,15 @@ class AISnake:
     def reset(self):
         for segment in self.body:
             destroy(segment)
+    def will_collide_self(self, grid_size):
+        """
+        檢查 AI 蛇是否會在下一步撞到自己。
+        """
+        # 計算 AI 蛇的下一步位置
+        next_head_position = self.head.position + self.direction.normalized()
+
+        # 檢查自身碰撞 (從第二段身體開始檢查)
+        for segment in self.body[1:]:
+            if next_head_position == segment.position:
+                return True
+        return False
