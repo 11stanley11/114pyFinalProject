@@ -95,19 +95,35 @@ class TopDownCameraMode(CameraMode):
     """
     Mode: Top Down
     Looking down from above.
-    Paired with: Standard Input.
+    修正：蛇往上移動時，相機不會跑到下方，而是保持在上方俯視。
     """
     def __init__(self, snake, **kwargs):
         super().__init__(snake, **kwargs)
         self.distance = 14.0 
-        self.height = 10.0   
+        self.height = 15.0 # 稍微增加高度以獲得更好的俯視視野
         self.smooth = 10
         
     def _target_info(self):
-        # Always use the last valid direction to avoid camera snapping when stopped
+        # 取得最後的有效方向
         direction = self.last_valid_direction
-            
-        target_pos = self.snake.head.position - (direction * self.distance) + Vec3(0, self.height, 0)
+        
+        # [修正] 只計算水平面 (XZ) 的後退方向
+        # 這樣當蛇往 Y 軸移動時，相機不會跟著跑到下面去
+        flat_dir = Vec3(direction.x, 0, direction.z)
+        
+        # 如果蛇是垂直移動 (flat_dir 接近 0)，我們就維持一個預設的 Z 軸後退
+        # 或者你可以選擇維持「上一次」的水平方向 (稍微複雜一點)，這裡用預設 Z 軸通常夠用
+        if flat_dir.length() < 0.1:
+            flat_dir = Vec3(0, 0, -1) 
+        else:
+            flat_dir = flat_dir.normalized()
+
+        # 計算目標位置：
+        # X/Z: 蛇頭位置 - 水平方向 * 距離
+        # Y:   蛇頭位置 + 固定高度 (確保永遠在上面)
+        target_pos = self.snake.head.position - (flat_dir * self.distance)
+        target_pos.y = self.snake.head.position.y + self.height
+        
         look_point = self.snake.head.position
         return target_pos, look_point
 
@@ -117,7 +133,8 @@ class TopDownCameraMode(CameraMode):
         if self.snake.head:
             pos, look = self._target_info()
             camera.position = pos
-            camera.look_at(look)
+            # Use lookAt (Capital A) and REMOVE axis='forward'.
+            camera.lookAt(look, Vec3(0, 1, 0))
         
     def update(self):
         super().update()
@@ -126,9 +143,8 @@ class TopDownCameraMode(CameraMode):
         target_pos, look_point = self._target_info()
         
         camera.position = lerp(camera.position, target_pos, time.dt * self.smooth)
-        # Force 'up' to be World Up for stable top-down view
-        camera.lookAt(look_point, Vec3(0,1,0))
-        camera.rotation_z = 0 
+        # Use lookAt (Capital A) and REMOVE axis='forward'.
+        camera.lookAt(look_point, Vec3(0, 1, 0))
 
 
 class FollowCameraMode(CameraMode):
