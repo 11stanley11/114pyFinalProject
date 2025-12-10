@@ -167,7 +167,8 @@ class MainMenu(Entity):
         # Data
         self.modes = [
             {'key': 'classic', 'name': 'Classic Mode', 'desc': 'Classic Snake: Eat and Grow', 'color': color.yellow},
-            {'key': 'ai', 'name': 'Survival Mode', 'desc': 'Avoid the AI Snake!', 'color': color.orange}
+            {'key': 'ai', 'name': 'Survival Mode (Easy)', 'desc': 'Avoid the AI Snake!', 'color': color.orange},
+            {'key': 'ai_hard', 'name': 'Survival Mode (Hard)', 'desc': 'Hunter AI: Chases you!', 'color': color.red}
         ]
         self.current_mode_index = 0
 
@@ -314,6 +315,11 @@ class MainMenu(Entity):
 
     def update_leaderboard(self):
         mode_key = self.modes[self.current_mode_index]['key']
+        
+        # Map ai_hard to ai for leaderboard purposes so they share scores
+        if mode_key == 'ai_hard':
+            mode_key = 'ai'
+            
         scores = leaderboard.load_scores(mode_key)
         
         # Limit to top 10
@@ -381,16 +387,22 @@ class MainMenu(Entity):
         self.change_mode(-1)
 
     def on_play(self):
-        selected_mode = self.modes[self.current_mode_index]['key']
+        selected_mode_key = self.modes[self.current_mode_index]['key']
         player_name = self.name_input.text
         if not player_name: player_name = "Guest"
         
-        # Pass the selected camera mode to the start_game_callback
-        # We need to update main.py to accept this extra argument, or handle it globally?
-        # Ideally, main.py should read this value or accept it.
-        # For now, let's assume we pass it as a kwarg or main.py will need adjustment.
-        # Let's verify main.py logic.
-        self.start_game_callback(selected_mode, player_name, self.selected_cam_mode)
+        # Determine actual game mode and aggression
+        actual_mode = selected_mode_key
+        is_aggressive = False
+        
+        if selected_mode_key == 'ai_hard':
+            actual_mode = 'ai'
+            is_aggressive = True
+        elif selected_mode_key == 'ai':
+            actual_mode = 'ai'
+            is_aggressive = False
+            
+        self.start_game_callback(actual_mode, player_name, self.selected_cam_mode, is_aggressive)
     
     def toggle_settings(self):
         self.settings_panel.enabled = not self.settings_panel.enabled

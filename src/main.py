@@ -30,6 +30,7 @@ direction_hints = None
 current_mode = None 
 current_player_name = "Guest"
 current_cam_mode = 'follow'
+current_is_aggressive = False
 
 # UI States
 main_menu = None
@@ -50,13 +51,14 @@ def get_occupied_positions():
         positions.extend([s.position for s in ai_snake.body])
     return positions
 
-def start_game(mode, player_name="Guest", cam_mode='follow'):
-    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud, current_cam_mode
+def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False):
+    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud, current_cam_mode, current_is_aggressive
     
     main_menu.enabled = False
     current_mode = mode
     current_player_name = player_name
     current_cam_mode = cam_mode
+    current_is_aggressive = is_aggressive
     
     if not grid: grid = WorldGrid()
     
@@ -69,7 +71,7 @@ def start_game(mode, player_name="Guest", cam_mode='follow'):
         snake.set_strategy('free_roam')
 
     if current_mode == 'ai':
-        ai_snake = AISnake(start_pos=(3, 0, 3))
+        ai_snake = AISnake(start_pos=(3, 0, 3), aggressive_mode=is_aggressive)
     else:
         ai_snake = None 
 
@@ -124,7 +126,7 @@ def stop_game():
 
 def restart_game():
     stop_game()
-    start_game(current_mode, current_player_name, current_cam_mode)
+    start_game(current_mode, current_player_name, current_cam_mode, current_is_aggressive)
 
 def show_menu():
     stop_game()

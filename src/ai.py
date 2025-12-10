@@ -5,7 +5,7 @@ import time
 from config import AI_COLOR, GRID_SIZE, AI_SPEED
 
 class AISnake:
-    def __init__(self, start_pos=(5, 0, 5)):
+    def __init__(self, start_pos=(5, 0, 5), aggressive_mode=False):
         self.body = [
             Entity(model='cube', color=AI_COLOR, scale=1, position=start_pos),
             Entity(model='cube', color=AI_COLOR, scale=1, position=(start_pos[0], start_pos[1]-1, start_pos[2])),
@@ -16,6 +16,8 @@ class AISnake:
         self.last_move_time = time.time()
         self.speed = AI_SPEED
         self.alive = True
+        self.aggressive_mode = aggressive_mode
+        self.hunt_radius = 6
         self.update_appearance()
 
     def update_appearance(self):
@@ -90,7 +92,28 @@ class AISnake:
             # No moves? AI dies or freezes.
             return
 
-        # Simple AI: Pick the move that minimizes distance to food
+        # --- STRATEGY SELECTION ---
+        target_pos = food.position
+        
+        # Check distance to player
+        dist_to_player = distance(self.head.position, player_snake.head.position)
+        dist_to_food = distance(self.head.position, food.position)
+        
+        # HUNT MODE: If player is close, try to cut them off
+        # BUT: Prioritize food if it's very close (within 3 units) so we don't starve
+        if self.aggressive_mode and dist_to_player < self.hunt_radius:
+            if dist_to_food < 3:
+                target_pos = food.position
+            else:
+                # Predict where player is going (Player Head + Player Direction)
+                intercept_point = player_snake.head.position + player_snake.direction
+                
+                # If we can get closer to that point, we might cut them off
+                target_pos = intercept_point
+
+        # ---------------------------
+
+        # Simple AI: Pick the move that minimizes distance to target
         best_move = safe_moves[0]
         min_dist = float('inf')
 
@@ -100,10 +123,10 @@ class AISnake:
 
         for move in safe_moves:
             next_pos = self.head.position + move
-            dist_to_food = distance(next_pos, food.position)
+            dist_to_target = distance(next_pos, target_pos)
             
-            if dist_to_food < min_dist:
-                min_dist = dist_to_food
+            if dist_to_target < min_dist:
+                min_dist = dist_to_target
                 best_move = move
 
         self.direction = best_move
