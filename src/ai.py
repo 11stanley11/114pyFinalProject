@@ -92,25 +92,48 @@ class AISnake:
             # No moves? AI dies or freezes.
             return
 
-        # --- STRATEGY SELECTION ---
-        target_pos = food.position
+        # --- DYNAMIC STRATEGY SELECTION ---
         
-        # Check distance to player
+        # 1. Calculate Distances
         dist_to_player = distance(self.head.position, player_snake.head.position)
         dist_to_food = distance(self.head.position, food.position)
         
-        # HUNT MODE: If player is close, try to cut them off
-        # BUT: Prioritize food if it's very close (within 3 units) so we don't starve
-        if self.aggressive_mode and dist_to_player < self.hunt_radius:
-            if dist_to_food < 3:
-                target_pos = food.position
-            else:
-                # Predict where player is going (Player Head + Player Direction)
-                intercept_point = player_snake.head.position + player_snake.direction
-                
-                # If we can get closer to that point, we might cut them off
-                target_pos = intercept_point
+        # 2. Calculate Priorities
+        # Food Priority: Base urgency + proximity bonus
+        food_priority = 10.0
+        food_priority += 30.0 / (dist_to_food + 0.1)  # Increases sharply as we get closer to food
+        if len(self.body) < len(player_snake.body):
+            food_priority += 15.0 # Extra hungry if smaller than player
 
+        # Hunt Priority: Only if aggressive
+        hunt_priority = 0.0
+        if self.aggressive_mode:
+            hunt_priority = 12.0 # Base hunt desire
+            hunt_priority += 25.0 / (dist_to_player + 0.1) # Increases as we get closer to prey
+            
+            # Confidence boost if larger
+            if len(self.body) > len(player_snake.body):
+                hunt_priority += 10.0
+            
+            # If food is practically adjacent, override hunting unless we are literally on top of player
+            if dist_to_food < 2 and dist_to_player > 2:
+                hunt_priority = 0
+
+        # 3. Determine Target
+        target_pos = food.position # Default
+        mode = "EAT"
+
+        if hunt_priority > food_priority:
+            mode = "HUNT"
+            # Improved Interception Logic
+            # Instead of a fixed intercept, predict based on distance
+            # If far, aim far ahead. If close, aim for the throat.
+            prediction_steps = max(1, min(6, int(dist_to_player / 1.5)))
+            
+            # Project player's future position
+            intercept_point = player_snake.head.position + (player_snake.direction * prediction_steps)
+            target_pos = intercept_point
+            
         # ---------------------------
 
         # Simple AI: Pick the move that minimizes distance to target
@@ -125,6 +148,11 @@ class AISnake:
             next_pos = self.head.position + move
             dist_to_target = distance(next_pos, target_pos)
             
+            # Tie-breaker: If hunting, try to stay close to the center to avoid getting trapped in corners
+            if mode == "HUNT":
+                dist_to_center = distance(next_pos, Vec3(0,0,0))
+                dist_to_target += dist_to_center * 0.1 # Slight bias towards center
+
             if dist_to_target < min_dist:
                 min_dist = dist_to_target
                 best_move = move
