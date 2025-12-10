@@ -56,7 +56,7 @@ class OrbitalCameraMode(CameraMode):
         self.radius = 20.0 
         self.height = 10.0 
         self.smooth = 5.0  
-        self._current_az = 0.0 
+        self._current_az = -math.pi / 2
         
     def _azimuth_from_head(self):
         rel = self.snake.head.position - self.center
@@ -87,7 +87,7 @@ class OrbitalCameraMode(CameraMode):
         if not self.active or not self.snake or not self.snake.head: return
         target_pos, look_point = self._target_info()
         camera.position = lerp(camera.position, target_pos, time.dt * self.smooth)
-        camera.look_at(look_point, axis='forward', up=Vec3(0,1,0))
+        camera.lookAt(look_point, Vec3(0,1,0))
         camera.rotation_z = 0
 
 
@@ -127,7 +127,7 @@ class TopDownCameraMode(CameraMode):
         
         camera.position = lerp(camera.position, target_pos, time.dt * self.smooth)
         # Force 'up' to be World Up for stable top-down view
-        camera.look_at(look_point, axis='forward', up=Vec3(0,1,0))
+        camera.lookAt(look_point, Vec3(0,1,0))
         camera.rotation_z = 0 
 
 

@@ -29,6 +29,7 @@ camera_controller = None
 direction_hints = None
 current_mode = None 
 current_player_name = "Guest"
+current_cam_mode = 'follow'
 
 # UI States
 main_menu = None
@@ -50,11 +51,12 @@ def get_occupied_positions():
     return positions
 
 def start_game(mode, player_name="Guest", cam_mode='follow'):
-    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud
+    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud, current_cam_mode
     
     main_menu.enabled = False
     current_mode = mode
     current_player_name = player_name
+    current_cam_mode = cam_mode
     
     if not grid: grid = WorldGrid()
     
@@ -73,6 +75,7 @@ def start_game(mode, player_name="Guest", cam_mode='follow'):
 
     food = Food(occupied_positions=get_occupied_positions())
     camera_controller = SnakeCamera(snake)
+    camera_controller.set_mode(cam_mode)
     
     # Initialize HUD
     if game_hud: destroy(game_hud)
@@ -121,7 +124,7 @@ def stop_game():
 
 def restart_game():
     stop_game()
-    start_game(current_mode, current_player_name)
+    start_game(current_mode, current_player_name, current_cam_mode)
 
 def show_menu():
     stop_game()
@@ -148,6 +151,9 @@ def check_highscore_and_end(message):
 
 def update():
     if not snake: return # Menu mode
+
+    # if camera_controller and snake:
+    #     print(f"Camera: {camera_controller.current_mode_name} | Input: {type(snake.current_strategy).__name__}")
 
     # --- AI Logic ---
     if ai_snake and ai_snake.alive and snake.direction.length() > 0:
