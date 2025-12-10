@@ -1,6 +1,6 @@
 "UI elements for the game."
 
-from ursina import Ursina, Entity, Text, Button, camera, destroy, window, color, invoke, application, Circle, curve, Quad, InputField
+from ursina import Ursina, Entity, Text, Button, camera, destroy, window, color, invoke, application, Circle, curve, Quad, InputField, Vec3
 from ursina.prefabs.window_panel import WindowPanel
 import leaderboard
 
@@ -123,19 +123,25 @@ class GameOverUI(Entity):
         self.btn_menu.text_entity.font = REGULAR_FONT
         # Hint
         Text(text='(Press M)', parent=self.panel, scale=1.3, position=(0.2, -0.275), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
-        # --- Leaderboard Panel (Bottom Left) ---
-        self.leaderboard_container = Entity(parent=self, position=(-0.65, -0.2), z=-10) # Adjusted z for layering
-        Entity(parent=self.leaderboard_container, model='quad', scale=(0.3, 0.4), color=color.black50, origin=(0,0))
         
-        Text(text='Leaderboard', parent=self.leaderboard_container, scale=1.2, y=0.15, origin=(0,0), color=color.gold, font=BOLD_FONT)
+        # --- Leaderboard Panel (Bottom Left) ---
+        self.lb_margin = Vec3(0.03, 0.03, 0) # Margin from bottom left
+        self.leaderboard_container = Entity(parent=self, z=-10) # Adjusted z for layering
+        
+        # Explicit update to set initial position
+        self.update()
+
+        Entity(parent=self.leaderboard_container, model='quad', scale=(0.3, 0.37), color=color.black50, origin=(-0.5, -0.5)) # Origin bottom-left for easier alignment
+        
+        Text(text='Leaderboard', parent=self.leaderboard_container, scale=1.2, position=(0.265, 0.355), origin=(0.5,0.5), color=color.gold, font=BOLD_FONT)
         
         # Headers
-        Text(text='Name', parent=self.leaderboard_container, scale=0.8, position=(-0.09, 0.10), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
-        Text(text='Score', parent=self.leaderboard_container, scale=0.8, position=(0.08, 0.10), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
-        Entity(parent=self.leaderboard_container, model='quad', scale=(0.25, 0.002), y=0.075, color=color.gray)
+        Text(text='Name', parent=self.leaderboard_container, scale=0.8, position=(0.06, 0.30), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
+        Text(text='Score', parent=self.leaderboard_container, scale=0.8, position=(0.23, 0.30), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
+        Entity(parent=self.leaderboard_container, model='quad', scale=(0.25, 0.002), position=(0.15, 0.275), color=color.gray)
 
         # Rows
-        start_y = 0.065
+        start_y = 0.265
         row_height = 0.025
         # Sort and limit scores just in case (though load_scores should handle it)
         scores = sorted(scores, key=lambda x: x['score'], reverse=True)[:10]
@@ -153,8 +159,13 @@ class GameOverUI(Entity):
                 if entry['name'] == player_name and player_name != "Guest":
                     col = color.azure
             
-            Text(text=name_txt, parent=self.leaderboard_container, scale=0.75, position=(-0.12, y_pos), origin=(-0.5, 0.5), color=col, font=REGULAR_FONT)
-            Text(text=score_txt, parent=self.leaderboard_container, scale=0.75, position=(0.08, y_pos), origin=(0, 0.5), color=col, font=REGULAR_FONT)
+            Text(text=name_txt, parent=self.leaderboard_container, scale=0.75, position=(0.03, y_pos), origin=(-0.5, 0.5), color=col, font=REGULAR_FONT)
+            Text(text=score_txt, parent=self.leaderboard_container, scale=0.75, position=(0.23, y_pos), origin=(0, 0.5), color=col, font=REGULAR_FONT)
+
+    def update(self):
+        # Dynamically align to bottom left
+        if self.leaderboard_container:
+            self.leaderboard_container.position = window.bottom_left + self.lb_margin
 
 
 
@@ -207,39 +218,41 @@ class MainMenu(Entity):
         self.btn_play.text_entity.color = color.white
 
         # Leaderboard Display (Bottom Left)
-        self.leaderboard_container = Entity(parent=self, position=(-0.65, -0.2), z=-1)
-        # Background for leaderboard
-        Entity(parent=self.leaderboard_container, model='quad', scale=(0.3, 0.4), color=color.black50, origin=(0,0))
+        self.lb_margin = Vec3(0.03, 0.03, 0)
+        self.leaderboard_container = Entity(parent=self, z=-1)
         
-        Text(text='Leaderboard', parent=self.leaderboard_container, scale=1.2, y=0.15, origin=(0,0), color=color.gold, font=BOLD_FONT)
+        # Background for leaderboard - Origin Bottom Left
+        Entity(parent=self.leaderboard_container, model='quad', scale=(0.3, 0.37), color=color.black50, origin=(-0.5, -0.5))
+        
+        Text(text='Leaderboard', parent=self.leaderboard_container, scale=1.2, position=(0.265, 0.355), origin=(0.5,0.5), color=color.gold, font=BOLD_FONT)
         
         # Column Headers
-        Text(text='Name', parent=self.leaderboard_container, scale=0.8, position=(-0.09, 0.10), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
-        Text(text='Score', parent=self.leaderboard_container, scale=0.8, position=(0.08, 0.10), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
+        Text(text='Name', parent=self.leaderboard_container, scale=0.8, position=(0.06, 0.30), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
+        Text(text='Score', parent=self.leaderboard_container, scale=0.8, position=(0.23, 0.30), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
         
         # Divider
-        Entity(parent=self.leaderboard_container, model='quad', scale=(0.25, 0.002), y=0.075, color=color.gray)
+        Entity(parent=self.leaderboard_container, model='quad', scale=(0.25, 0.002), position=(0.15, 0.275), color=color.gray)
         
         # Leaderboard Content
         # Use separate text entities for each row to allow individual highlighting
         self.lb_entries = []
-        start_y = 0.065
+        start_y = 0.265
         row_height = 0.025
         
         for i in range(10):
             y_pos = start_y - (i * row_height)
             # Name Text
-            t_name = Text(text='-', parent=self.leaderboard_container, scale=0.75, position=(-0.12, y_pos), origin=(-0.5, 0.5), font=REGULAR_FONT)
+            t_name = Text(text='-', parent=self.leaderboard_container, scale=0.75, position=(0.03, y_pos), origin=(-0.5, 0.5), font=REGULAR_FONT)
             # Score Text
-            t_score = Text(text='-', parent=self.leaderboard_container, scale=0.75, position=(0.08, y_pos), origin=(0, 0.5), font=REGULAR_FONT)
+            t_score = Text(text='-', parent=self.leaderboard_container, scale=0.75, position=(0.23, y_pos), origin=(0, 0.5), font=REGULAR_FONT)
             self.lb_entries.append((t_name, t_score))
 
         # Player Name Input (Above Leaderboard)
-        # Leaderboard BG left edge is at -0.65 - (0.3/2) = -0.80
-        self.name_label = Text(text='Currently playing as:', parent=self, position=(-0.79, 0.06), scale=1, origin=(-0.5, 0), color=color.light_gray, font=REGULAR_FONT)
+        # Position relative to leaderboard will be handled in update()
+        self.name_label = Text(text='Currently playing as:', parent=self, scale=1 ,origin=(-0.5, 0), color=color.light_gray, font=REGULAR_FONT)
         
-        # Position InputField to the right of the label
-        self.name_input = InputField(default_value='Guest', parent=self, position=(-0.675, 0.03), scale=(0.25, 0.04), color=color.clear, text_color=color.white, active=False, font=REGULAR_FONT)
+        # Position InputField
+        self.name_input = InputField(default_value='Guest', parent=self, scale=(0.25, 0.04), color=color.clear, text_color=color.white, active=False, font=REGULAR_FONT)
         # Force font application on internal TextField text_entity and adjust text scale
         if hasattr(self.name_input, 'text_field') and hasattr(self.name_input.text_field, 'text_entity'):
             self.name_input.text_field.text_entity.font = REGULAR_FONT
@@ -255,6 +268,9 @@ class MainMenu(Entity):
         # Quit Button (Bottom Right, right of Settings)
         self.btn_quit = Button(model='quad', texture='../assets/quitIcon.png', scale=(0.045, 0.045), position=(0.75, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_quit.on_click = self.quit_callback
+
+        # Run explicit update for initial position
+        self.update()
 
         # --- Settings Panel (Bottom Right) ---
         # Panel Background
@@ -303,6 +319,18 @@ class MainMenu(Entity):
         self.selected_cam_mode = mode
         self.update_settings_ui()
         print(f"Selected Mode: {mode}")
+
+    def update(self):
+        # Dynamically align Leaderboard to bottom left
+        if self.leaderboard_container:
+            self.leaderboard_container.position = window.bottom_left + self.lb_margin
+            
+            # Position Name Input relative to Leaderboard (Above it)
+            # Leaderboard is 0.4 tall, origin bottom-left. Top is at y + 0.4
+            lb_top_y = self.leaderboard_container.y + 0.41
+            
+            self.name_label.position = (self.leaderboard_container.x + 0.01, lb_top_y + 0.02)
+            self.name_input.position = (self.leaderboard_container.x + 0.125, lb_top_y - 0.01) # Slightly lower than label
 
     def update_settings_ui(self):
         for key, ui in self.cam_toggles.items():
