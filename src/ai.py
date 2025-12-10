@@ -7,9 +7,9 @@ from config import AI_COLOR, GRID_SIZE, AI_SPEED
 class AISnake:
     def __init__(self, start_pos=(5, 0, 5), aggressive_mode=False):
         self.body = [
-            Entity(model='cube', color=AI_COLOR, scale=1, position=start_pos),
-            Entity(model='cube', color=AI_COLOR, scale=1, position=(start_pos[0], start_pos[1]-1, start_pos[2])),
-            Entity(model='cube', color=AI_COLOR, scale=1, position=(start_pos[0], start_pos[1]-2, start_pos[2]))
+            Entity(model='cube', color=AI_COLOR, scale=1, position=start_pos, collider=None),
+            Entity(model='cube', color=AI_COLOR, scale=1, position=(start_pos[0], start_pos[1]-1, start_pos[2]), collider=None),
+            Entity(model='cube', color=AI_COLOR, scale=1, position=(start_pos[0], start_pos[1]-2, start_pos[2]), collider=None)
         ]
         self.head = self.body[0]
         self.direction = Vec3(0, 1, 0)
@@ -131,7 +131,7 @@ class AISnake:
             prediction_steps = max(1, min(6, int(dist_to_player / 1.5)))
             
             # Project player's future position
-            intercept_point = player_snake.head.position + (player_snake.direction * prediction_steps)
+            intercept_point = player_snake.head.position + player_snake.direction * prediction_steps
             target_pos = intercept_point
             
         # ---------------------------
@@ -161,19 +161,29 @@ class AISnake:
         self.move()
 
     def move(self):
-        # Move body segments
-        for i in range(len(self.body) - 1, 0, -1):
-            self.body[i].position = self.body[i - 1].position
-
-        # Move head
-        self.head.position += self.direction
+        # Calculate new head position
+        new_head_position = self.head.position + self.direction
         
+        # Get the last segment (tail)
+        segment_to_move = self.body.pop()
+        
+        # Update its position to the new head position
+        segment_to_move.position = new_head_position
+        
+        # Insert it at the beginning of the body list, making it the new head
+        self.body.insert(0, segment_to_move)
+        
+        # Update head reference
+        self.head = self.body[0]
+
         # Visual: Make AI look where it's going
         self.head.look_at(self.head.position + self.direction)
+        
+        # Re-apply appearance to update colors/transparency for the new order
         self.update_appearance()
 
     def grow(self):
-        new_segment = Entity(model='cube', color=AI_COLOR, scale=1, position=self.body[-1].position)
+        new_segment = Entity(model='cube', color=AI_COLOR, scale=1, position=self.body[-1].position, collider=None)
         self.body.append(new_segment)
         self.update_appearance()
     

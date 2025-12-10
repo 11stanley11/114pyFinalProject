@@ -13,7 +13,8 @@ class Food(Entity):
             model='cube',
             color=FOOD_COLOR,
             scale=1,
-            position=self.get_valid_position(occupied_positions)
+            position=self.get_valid_position(occupied_positions),
+            collider=None
         )
 
     def random_position(self):
