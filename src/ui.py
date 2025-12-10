@@ -1,6 +1,6 @@
 "UI elements for the game."
 
-from ursina import Ursina, Entity, Text, Button, camera, destroy, window, color, invoke, application, Circle, curve, Quad, InputField
+from ursina import Ursina, Entity, Text, Button, camera, destroy, window, color, invoke, application, Circle, curve, Quad, InputField, Audio
 from ursina.prefabs.window_panel import WindowPanel
 import leaderboard
 
@@ -114,6 +114,7 @@ class GameOverUI(Entity):
         self.btn_restart = Button(text='Restart', color=color.gray, text_color=color.white, scale=(0.3, 0.1), position=(-0.2, -0.20), highlight_text_color=color.green, parent=self.panel, font=ITALIC_FONT)
         self.btn_restart.on_click = self.restart_callback
         self.btn_restart.text_entity.font = ITALIC_FONT
+        
         # Hint
         Text(text='(Press R)', parent=self.panel, scale=1.3, position=(-0.2, -0.275), origin=(0,0), color=color.light_gray, font=REGULAR_FONT)
 
@@ -159,10 +160,11 @@ class GameOverUI(Entity):
 
 
 class MainMenu(Entity):
-    def __init__(self, start_game_callback, quit_callback):
+    def __init__(self, start_game_callback, quit_callback,bg_music_track):
         super().__init__(parent=camera.ui)
         self.start_game_callback = start_game_callback
         self.quit_callback = quit_callback
+        self.bg_music_track = bg_music_track
         
         # Data
         self.modes = [
@@ -239,7 +241,8 @@ class MainMenu(Entity):
         self.name_label = Text(text='Currently playing as:', parent=self, position=(-0.79, 0.06), scale=1, origin=(-0.5, 0), color=color.light_gray, font=REGULAR_FONT)
         
         # Position InputField to the right of the label
-        self.name_input = InputField(default_value='Guest', parent=self, position=(-0.675, 0.03), scale=(0.25, 0.04), color=color.clear, text_color=color.white, active=False, font=REGULAR_FONT)
+        self.name_input = InputField(default_value='Guest', parent=self, position=(-0.675, 0.03), scale=(0.25, 0.04), color=color.clear, active=False, font=REGULAR_FONT)
+        self.name_input.text_color = color.white
         # Force font application on internal TextField text_entity and adjust text scale
         if hasattr(self.name_input, 'text_field') and hasattr(self.name_input.text_field, 'text_entity'):
             self.name_input.text_field.text_entity.font = REGULAR_FONT
@@ -255,6 +258,12 @@ class MainMenu(Entity):
         # Quit Button (Bottom Right, right of Settings)
         self.btn_quit = Button(model='quad', texture='../assets/quitIcon.png', scale=(0.045, 0.045), position=(0.75, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_quit.on_click = self.quit_callback
+
+        # --- MUSIC BUTTON (New) ---
+        # Position: 0.63 (Left of Settings), -0.44 (Bottom aligned)
+        self.btn_music = Button(model='quad', texture='../assets/speakeron.png', scale=(0.06, 0.06), position=(0.63, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
+        self.btn_music.on_click = self.toggle_music
+        self.music_enabled = True  
 
         # --- Settings Panel (Bottom Right) ---
         # Panel Background
@@ -406,3 +415,19 @@ class MainMenu(Entity):
     
     def toggle_settings(self):
         self.settings_panel.enabled = not self.settings_panel.enabled
+
+    def toggle_music(self):
+        if not self.bg_music_track: 
+            return
+        
+        self.music_enabled = not self.music_enabled
+
+        if self.music_enabled:
+            # Turn ON
+            self.bg_music_track.volume = 0.5 
+            self.btn_music.texture = '../assets/speakeron.png'
+        else:
+            # Turn OFF
+            self.bg_music_track.volume = 0
+            self.btn_music.texture = '../assets/speakerOff.png'
+
