@@ -41,6 +41,14 @@ game_hud = None
 score = 0
 # score_text and game_over_text removed in favor of GameHUD and GameOverUI
 
+# Background Music 
+bg_music = Audio('../assets/bgm.wav', loop=True, autoplay=False, volume=0.5)
+
+# Sound Effects 
+eat_sound = Audio('../assets/eat apple.wav', loop=False, autoplay=False)
+crash_sound = Audio('../assets/game-over-arcade-6435.wav', loop=False, autoplay=False)
+click_sound = Audio('../assets/button.wav', loop=False, autoplay=False)
+
 # --- GAME LOGIC ---
 
 def get_occupied_positions():
@@ -59,6 +67,9 @@ def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False
     current_player_name = player_name
     current_cam_mode = cam_mode
     current_is_aggressive = is_aggressive
+
+    if not bg_music.playing:
+        bg_music.play()
     
     if not grid: grid = WorldGrid()
     
@@ -146,7 +157,8 @@ def check_highscore_and_end(message):
         restart_callback=restart_game,
         menu_callback=show_menu
     )
-    
+    crash_sound.play()      # <--- Play crash sound
+    bg_music.stop()
     # 2. Stop movement
     if snake: snake.direction = Vec3(0,0,0)
     if ai_snake: ai_snake.alive = False
@@ -193,8 +205,14 @@ def update():
                 snake.grow()
                 food.reposition(occupied_positions=get_occupied_positions())
                 update_score(score + 1)
+                eat_sound.play()
 
 def input(key):
+    if key == 'left mouse down':
+        # Check if the mouse is hovering over SOMETHING, and if that something is a Button
+        if mouse.hovered_entity and isinstance(mouse.hovered_entity, Button):
+            click_sound.play()
+
     if key == 'escape': application.quit()
 
     if snake and snake.direction.length() > 0:
@@ -207,7 +225,7 @@ def input(key):
         if key == 'm': show_menu()
 
 # --- STARTUP ---
-main_menu = MainMenu(start_game, application.quit)
+main_menu = MainMenu(start_game, application.quit,bg_music)
 
 if __name__ == '__main__':
     app.run()
