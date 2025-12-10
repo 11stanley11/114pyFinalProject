@@ -274,7 +274,7 @@ class MainMenu(Entity):
 
         # --- MUSIC BUTTON (New) ---
         # Position: 0.63 (Left of Settings), -0.44 (Bottom aligned)
-        self.btn_music = Button(model='quad', texture='../assets/speakeron.png', scale=(0.06, 0.06), position=(0.63, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
+        self.btn_music = Button(model='quad', texture='../assets/speakeron.png', scale=(0.045, 0.045), position=(0.63, -0.439), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_music.on_click = self.toggle_music
         self.music_enabled = True  
 
