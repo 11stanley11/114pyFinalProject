@@ -1,17 +1,17 @@
-"""
-Main entry point of the game.
-Fixed: Input processing is no longer blocked if snake stops moving.
-"""
-from ursina import application
+'''
+"Main entry point of the game."
+'''
+
 from ursina import *
 from player import Snake
 from food import Food
 from world import WorldGrid
 from camera import SnakeCamera
-from ui import DirectionHints
+# from ui import DirectionHints
 from ai import AISnake
 import leaderboard
 from config import GRID_SIZE, BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED
+from ui import GameOverUI, MainMenu, GameHUD
 import time
 
 app = Ursina(fullscreen=FULLSCREEN)
@@ -27,101 +27,72 @@ food = None
 camera_controller = None
 direction_hints = None
 current_mode = None 
+current_player_name = "Guest"
+current_cam_mode = 'follow'
 
 # UI States
 main_menu = None
-leaderboard_ui = None
-highscore_input = None 
+game_over_ui = None
+game_hud = None
 
 # Game UI Elements
 score = 0
-score_text = Text(text="", position=(-0.85, 0.45), scale=2, enabled=False)
-game_over_text = Text(text="", origin=(0, 0), scale=3, enabled=False)
-
-# --- UI CLASSES ---
-class MainMenu(Entity):
-    def __init__(self):
-        super().__init__(parent=camera.ui)
-        self.bg = Entity(parent=self, model='quad', scale=(20, 10), color=color.black66, z=10)
-        self.title = Text(text='3D SNAKE', parent=self, scale=4, y=0.35, origin=(0,0), color=color.green, z=-1)
-        self.btn_classic = Button(text='Classic Mode (Solo)', color=color.azure, scale=(0.45, 0.08), position=(0, 0.1), parent=self, z=-1)
-        self.btn_classic.on_click = lambda: start_game('classic')
-        self.btn_ai = Button(text='Survival Mode (vs AI)', color=color.orange, scale=(0.45, 0.08), position=(0, -0.05), parent=self, z=-1)
-        self.btn_ai.on_click = lambda: start_game('ai')
-        self.btn_leaderboard = Button(text='Leaderboard', color=color.gold, scale=(0.4, 0.08), position=(0, -0.2), parent=self, z=-1)
-        self.btn_leaderboard.on_click = show_leaderboard
-        self.btn_quit = Button(text='Quit', color=color.red, scale=(0.3, 0.06), position=(0, -0.35), parent=self, z=-1)
-        self.btn_quit.on_click = application.quit
-
-class LeaderboardUI(Entity):
-    def __init__(self):
-        super().__init__(parent=camera.ui, enabled=False)
-        self.bg = Entity(parent=self, model='quad', scale=(20, 10), color=color.black90, z=9)
-        self.title = Text(text='TOP SCORES', parent=self, scale=3, y=0.4, origin=(0,0), color=color.gold, z=-1)
-        self.score_lines = Text(text='', parent=self, scale=1.5, position=(0, 0.25), origin=(0,1), z=-1)
-        self.btn_back = Button(text='Back', color=color.gray, scale=(0.2, 0.08), position=(0, -0.4), parent=self, z=-1)
-        self.btn_back.on_click = show_menu
-
-    def refresh(self):
-        scores = leaderboard.load_scores()
-        text_content = ""
-        for i, entry in enumerate(scores):
-            name = entry['name'][:10].ljust(10)
-            text_content += f"{i+1}. {name} - {entry['score']}\n"
-        self.score_lines.text = text_content
-
-class HighScoreInput(Entity):
-    def __init__(self, final_score):
-        super().__init__(parent=camera.ui)
-        self.final_score = final_score
-        self.bg = Entity(parent=self, model='quad', scale=(10, 5), color=color.black90, z=8)
-        self.title = Text(text='NEW HIGH SCORE!', parent=self, scale=2.5, y=0.2, origin=(0,0), color=color.gold, z=-1)
-        self.sub = Text(text=f'You scored: {final_score}', parent=self, scale=1.5, y=0.1, origin=(0,0), z=-1)
-        self.inp = InputField(parent=self, y=-0.1, limit_content_to='abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890', active=True, scale=1.5)
-        self.inp.text_color = color.white
-        self.inp.max_lines = 1
-        self.btn_submit = Button(text='Save', color=color.green, scale=(0.2, 0.08), position=(0, -0.25), parent=self, z=-1)
-        self.btn_submit.on_click = self.submit_score
-
-    def submit_score(self):
-        global highscore_input
-        name = self.inp.text.strip()
-        if not name: name = "Anonymous"
-        leaderboard.save_new_score(name, self.final_score)
-        destroy(self)
-        highscore_input = None
-        show_leaderboard()
+# score_text and game_over_text removed in favor of GameHUD and GameOverUI
 
 # --- GAME LOGIC ---
 
-def start_game(mode):
-    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, leaderboard_ui
+def get_occupied_positions():
+    positions = []
+    if snake:
+        positions.extend([s.position for s in snake.body])
+    if ai_snake:
+        positions.extend([s.position for s in ai_snake.body])
+    return positions
+
+def start_game(mode, player_name="Guest", cam_mode='follow'):
+    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud, current_cam_mode
+    
     main_menu.enabled = False
-    leaderboard_ui.enabled = False
     current_mode = mode
+    current_player_name = player_name
+    current_cam_mode = cam_mode
+    
     if not grid: grid = WorldGrid()
     snake = Snake()
-    camera_controller = SnakeCamera(snake) 
-    direction_hints = DirectionHints(snake)
+    # direction_hints = DirectionHints(snake)
+    
+    if cam_mode in ['orbital', 'topdown']:                                                                                                             
+       snake.set_strategy('standard')                                                                                                                 
+    else:                                                                                                                                                                                                                                                                           
+        snake.set_strategy('free_roam')
+
     if current_mode == 'ai':
         ai_snake = AISnake(start_pos=(3, 0, 3))
     else:
         ai_snake = None 
-    food = Food()
+
+    food = Food(occupied_positions=get_occupied_positions())
+    camera_controller = SnakeCamera(snake)
+    camera_controller.set_mode(cam_mode)
+    
+    # Initialize HUD
+    if game_hud: destroy(game_hud)
+    game_hud = GameHUD(player_name, current_mode)
+    
     update_score(0)
-    score_text.enabled = True
-    game_over_text.enabled = False
 
 def update_score(new_val):
     global score
     score = new_val
-    score_text.text = f"Score: {score}"
+    if game_hud:
+        game_hud.update_score(score)
 
 def stop_game():
-    global snake, ai_snake, food, direction_hints, camera_controller, highscore_input
+    global snake, ai_snake, food, direction_hints, camera_controller, game_over_ui, game_hud
+    
     if snake:
         for segment in snake.body: destroy(segment)
-        destroy(snake.head_marker)
+        # destroy(snake.head_marker)
         snake = None
     if ai_snake: ai_snake.reset()
     if food:
@@ -134,48 +105,47 @@ def stop_game():
     if camera_controller:
         destroy(camera_controller)
         camera_controller = None
-    if highscore_input:
-        destroy(highscore_input)
-        highscore_input = None
-    score_text.enabled = False
-    game_over_text.enabled = False
+
+    if game_over_ui:
+        destroy(game_over_ui)
+        game_over_ui = None
+
+    if game_hud:
+        destroy(game_hud)
+        game_hud = None
 
 def restart_game():
     stop_game()
-    start_game(current_mode)
+    start_game(current_mode, current_player_name, current_cam_mode)
 
 def show_menu():
     stop_game()
-    leaderboard_ui.enabled = False
+    main_menu.update_leaderboard() # Refresh leaderboard in case we added a score
     main_menu.enabled = True
 
-def show_leaderboard():
-    stop_game()
-    main_menu.enabled = False
-    leaderboard_ui.enabled = True
-    leaderboard_ui.refresh()
-
 def check_highscore_and_end(message):
-    global highscore_input
-    game_over_text.text = f"{message}\nFinal Score: {score}"
-    game_over_text.color = window.color.invert()
-    game_over_text.enabled = True
+    global game_over_ui
+    # Save score immediately using the current player name
+    leaderboard.save_new_score(current_player_name, score, current_mode)
+    
+    # Instantiate GameOverUI
+    game_over_ui = GameOverUI(
+        player_name=current_player_name,
+        score=score,
+        current_mode=current_mode,
+        restart_callback=restart_game,
+        menu_callback=show_menu
+    )
+    
+    # 2. Stop movement
+    if snake: snake.direction = Vec3(0,0,0)
     if ai_snake: ai_snake.alive = False
-    if leaderboard.is_high_score(score):
-        invoke(lambda: trigger_highscore_input(), delay=1.5)
-    else:
-        game_over_text.text += "\n\n(Press 'Y' to restart)\n(Press 'X' for Menu)"
-
-def trigger_highscore_input():
-    global highscore_input
-    game_over_text.enabled = False 
-    highscore_input = HighScoreInput(score)
 
 def update():
     if not snake: return # Menu mode
 
-    if game_over_text.enabled or highscore_input:
-        return
+    # if camera_controller and snake:
+    #     print(f"Camera: {camera_controller.current_mode_name} | Input: {type(snake.current_strategy).__name__}")
 
     # --- AI Logic ---
     if ai_snake and ai_snake.alive:
@@ -186,7 +156,9 @@ def update():
             return 
         if ai_snake.head.position == food.position:
             ai_snake.grow()
-            food.reposition()
+            food.reposition(occupied_positions=get_occupied_positions())
+        
+        # AI eats Player
         for segment in snake.body:
             if ai_snake.head.position == segment.position:
                 check_highscore_and_end("The AI ate you!")
@@ -216,7 +188,7 @@ def update():
 
             if snake.head.position == food.position:
                 snake.grow()
-                food.reposition()
+                food.reposition(occupied_positions=get_occupied_positions())
                 update_score(score + 1)
         else:
             # 如果速度為0，嘗試重置為預設方向 (避免永遠卡住)
@@ -249,13 +221,13 @@ def input(key):
             else:
                 snake.turn('2') 
     
-    if game_over_text.enabled and not highscore_input: 
-        if final_key == 'r' or key == 'gamepad y': restart_game()
-        if final_key == 'm': show_menu()
+    # RESTART/MENU LOGIC:
+    if snake and snake.direction.length() == 0: 
+        if key == 'r': restart_game()
+        if key == 'm': show_menu()
 
 # --- STARTUP ---
-main_menu = MainMenu()
-leaderboard_ui = LeaderboardUI()
+main_menu = MainMenu(start_game, application.quit)
 
 if __name__ == '__main__':
     app.run()
