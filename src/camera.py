@@ -1,54 +1,58 @@
-"""
-Camera logic for following the snake in 3D space
-Now supports multiple camera modes (Orbital, TopDown, Follow).
-"""
-
-from ursina import Entity, camera, lerp, time, Vec3, scene, window
+from ursina import camera, Vec3, lerp, time, Entity, Text, color, scene, window
 import math
 
-# --- 1. Base Class ---
+# --- 1. 攝影機模式基礎類別 ---
+
 class CameraMode(Entity):
+    """攝影機模式的基礎類別"""
     def __init__(self, snake, **kwargs):
-        super().__init__(**kwargs)
+        super().__init__(**kwargs) 
         self.snake = snake
         self.active = False
+        self.enabled = False 
         
-        if self.snake:
-            self.last_valid_direction = self.snake.direction.normalized()
-            self.last_valid_up = self.snake.up.normalized()
-        else:
-            self.last_valid_direction = Vec3(0, 0, 1)
-            self.last_valid_up = Vec3(0, 1, 0)
-            
-        camera.orthographic = False
+        # 儲存上一次有效的方向，避免蛇停止時向量歸零
+        self.last_valid_direction = Vec3(0, 0, 1)
+        self.last_valid_up = Vec3(0, 1, 0)
 
+        camera.orthographic = False
+        
     def enable(self):
         self.active = True
+        self.enabled = True 
         if camera.parent != scene:
-            camera.parent = scene
-        self._update_valid_vectors()
+            camera.parent = scene 
+        # 重置最後有效方向
+        if self.snake and self.snake.head:
+            self._update_valid_vectors()
 
     def disable(self):
         self.active = False
+        self.enabled = False
 
     def _update_valid_vectors(self):
+        """更新並驗證方向向量，確保不使用零向量"""
         if not self.snake: return
-        if self.snake.direction.length() > 0.01:
-            self.last_valid_direction = self.snake.direction.normalized()
-        if self.snake.up.length() > 0.01:
-            self.last_valid_up = self.snake.up.normalized()
+
+        # 檢查方向向量長度
+        curr_dir = self.snake.direction
+        if curr_dir.length() > 0.01:
+            self.last_valid_direction = curr_dir.normalized()
+        
+        # 檢查 Up 向量
+        curr_up = self.snake.up
+        if curr_up.length() > 0.01:
+            self.last_valid_up = curr_up.normalized()
 
     def update(self):
         if self.active:
             self._update_valid_vectors()
 
-# --- 2. Modes ---
+# --- 2. 攝影機模式實作 ---
 
-class OrbitalCameraMode(CameraMode):
+class OriginalTrackingMode(CameraMode):
     """
-    Mode: Orbital / Tracking
-    Rotates around the center of the grid.
-    Paired with: Standard Input.
+    模式 1: 軌道追蹤 (Orbital)
     """
     def __init__(self, snake, grid_center=Vec3(0,0,0), **kwargs):
         super().__init__(snake, **kwargs)
@@ -56,7 +60,7 @@ class OrbitalCameraMode(CameraMode):
         self.radius = 20.0 
         self.height = 10.0 
         self.smooth = 5.0  
-        self._current_az = -math.pi / 2
+        self._current_az = 0.0 
         
     def _azimuth_from_head(self):
         rel = self.snake.head.position - self.center
@@ -66,7 +70,7 @@ class OrbitalCameraMode(CameraMode):
         self._current_az = target_az 
         return target_az
 
-    def _target_info(self):
+    def _target_position_and_look(self):
         az = self._azimuth_from_head()
         cam_x = self.center.x + self.radius * math.cos(az)
         cam_z = self.center.z + self.radius * math.sin(az)
@@ -75,66 +79,46 @@ class OrbitalCameraMode(CameraMode):
 
     def enable(self):
         super().enable()
-        camera.fov = 90
         if self.snake.head: 
-            pos, look = self._target_info()
+            pos, look = self._target_position_and_look()
             camera.position = pos
             camera.look_at(look) 
             camera.rotation_z = 0
 
     def update(self):
-        super().update()
+        super().update() # 更新有效向量
         if not self.active or not self.snake or not self.snake.head: return
-        target_pos, look_point = self._target_info()
+        target_pos, look_point = self._target_position_and_look()
         camera.position = lerp(camera.position, target_pos, time.dt * self.smooth)
-        camera.lookAt(look_point, Vec3(0,1,0))
+        camera.look_at(look_point)
         camera.rotation_z = 0
-
 
 class TopDownCameraMode(CameraMode):
     """
-    Mode: Top Down
-    Looking down from above.
-    修正：蛇往上移動時，相機不會跑到下方，而是保持在上方俯視。
+    模式 2:未完成/未啟用
     """
     def __init__(self, snake, **kwargs):
         super().__init__(snake, **kwargs)
         self.distance = 14.0 
-        self.height = 15.0 # 稍微增加高度以獲得更好的俯視視野
+        self.height = 10.0   
         self.smooth = 10
         
     def _target_info(self):
-        # 取得最後的有效方向
         direction = self.last_valid_direction
+            
+        # 目標位置
+        target_pos = self.snake.head.position - (direction * self.distance) + Vec3(0, self.height, 0)
         
-        # [修正] 只計算水平面 (XZ) 的後退方向
-        # 這樣當蛇往 Y 軸移動時，相機不會跟著跑到下面去
-        flat_dir = Vec3(direction.x, 0, direction.z)
-        
-        # 如果蛇是垂直移動 (flat_dir 接近 0)，我們就維持一個預設的 Z 軸後退
-        # 或者你可以選擇維持「上一次」的水平方向 (稍微複雜一點)，這裡用預設 Z 軸通常夠用
-        if flat_dir.length() < 0.1:
-            flat_dir = Vec3(0, 0, -1) 
-        else:
-            flat_dir = flat_dir.normalized()
-
-        # 計算目標位置：
-        # X/Z: 蛇頭位置 - 水平方向 * 距離
-        # Y:   蛇頭位置 + 固定高度 (確保永遠在上面)
-        target_pos = self.snake.head.position - (flat_dir * self.distance)
-        target_pos.y = self.snake.head.position.y + self.height
-        
+        # 看向點
         look_point = self.snake.head.position
         return target_pos, look_point
 
     def enable(self):
         super().enable()
-        camera.fov = 90
         if self.snake.head:
             pos, look = self._target_info()
             camera.position = pos
-            # Use lookAt (Capital A) and REMOVE axis='forward'.
-            camera.lookAt(look, Vec3(0, 1, 0))
+            camera.look_at(look)
         
     def update(self):
         super().update()
@@ -143,81 +127,90 @@ class TopDownCameraMode(CameraMode):
         target_pos, look_point = self._target_info()
         
         camera.position = lerp(camera.position, target_pos, time.dt * self.smooth)
-        # Use lookAt (Capital A) and REMOVE axis='forward'.
-        camera.lookAt(look_point, Vec3(0, 1, 0))
+        camera.look_at(look_point, axis='forward', up=Vec3(0,1,0))
+        camera.rotation_z = 0 
 
-
-class FollowCameraMode(CameraMode):
+class FirstPersonCameraMode(CameraMode):
     """
-    Mode: Follow / Action (Classic)
-    Your original camera logic.
-    Paired with: Free Roam Input.
+    模式 3: 貼身視角 (Follow / Action Cam)
     """
-    def __init__(self, snake, **kwargs):
+    def __init__(self, snake,**kwargs):
         super().__init__(snake, **kwargs)
-        self.smooth_speed = 4
-        self.distance = 14
-        self.height = 5
-        self.offset_side = 3
-
-    def enable(self):
-        super().enable()
-        camera.fov = 90
-        # Instant rotate, smooth zoom (speed=0 for orientation only)
-        if self.snake.head:
-            self._update_cam(speed=0)
+        camera.fov = 80 
 
     def update(self):
         super().update()
         if not self.active or not self.snake or not self.snake.head: return
-        self._update_cam(speed=time.dt * self.smooth_speed)
 
-    def _update_cam(self, speed):
-        direction = self.last_valid_direction
+        forward = self.last_valid_direction
         up = self.last_valid_up
-        right = direction.cross(up).normalized()
-
-        base_pos = self.snake.head.position - (direction * self.distance) + (up * self.height)
         
-        target_left = base_pos - (right * self.offset_side)
-        target_right = base_pos + (right * self.offset_side)
+        # 計算側向向量
+
+        # 這裡加入檢查，如果平行則使用默認 Right
+        try:
+            side_raw = up.cross(forward)
+            if side_raw.length() < 0.01:
+                side = Vec3(1,0,0) # 默認右邊
+            else:
+                side = side_raw.normalized()
+        except:
+            side = Vec3(1,0,0)
+
+        # 目標位置：蛇頭後方 + 上方
+        offset = -forward * 8 + up * 10
         
-        dist_left = (camera.position - target_left).length()
-        dist_right = (camera.position - target_right).length()
+        desired_position = self.snake.head.position + offset
         
-        target_pos = target_left if dist_left < dist_right else target_right
+        camera.position = lerp(camera.position, desired_position, time.dt * 6)
+        
+        # 看向前方遠處
+        look_target = self.snake.head.position + forward * 5
+        camera.look_at(look_target)
 
-        camera.position = lerp(camera.position, target_pos, speed)
-        camera.lookAt(self.snake.head.position, up)
-
-
-# --- 3. Manager ---
+# --- 3. 攝影機管理器 ---
 
 class SnakeCamera(Entity):
     def __init__(self, snake, grid_center=Vec3(0,0,0)):
         super().__init__()
         self.snake = snake
         
-        self.modes = {
-            'orbital': OrbitalCameraMode(snake, grid_center),
-            'topdown': TopDownCameraMode(snake),
-            'follow': FollowCameraMode(snake)
-        }
+        self.mode_list = [
+            OriginalTrackingMode(snake, grid_center=grid_center), # Index 0
+            FirstPersonCameraMode(snake)# Index 1                   
+        ]
+        self.current_mode_index = 1
         
-        self.current_mode_name = 'follow'
-        
-        for mode in self.modes.values():
+        self.help_text = Text(
+            text="", position=Vec3(window.top_left.x + 0.05, window.top_left.y - 0.1), 
+            scale=1.5, color=color.white, enabled=False, parent=camera.ui
+        )
+
+        # 初始設定
+        for mode in self.mode_list:
             mode.disable()
             
-        self.set_mode(self.current_mode_name)
+        self.set_mode(0)
+        self.update_ui()
 
-    def set_mode(self, name):
-        if name in self.modes:
-            if self.current_mode_name:
-                self.modes[self.current_mode_name].disable()
-            
-            self.current_mode_name = name
-            self.modes[name].enable()
+    def set_mode(self, index):
+        """切換到指定索引的模式"""
+        self.mode_list[self.current_mode_index].disable()
+        self.current_mode_index = index % len(self.mode_list)
+        new_mode = self.mode_list[self.current_mode_index]
+        new_mode.enable()
+        self.update_ui()
+
+    def cycle_mode(self):
+        """循環切換下一個模式"""
+        self.set_mode(self.current_mode_index + 1)
+
+    def update_ui(self):
+        mode_name = self.mode_list[self.current_mode_index].__class__.__name__.replace('Mode', '')
+        if self.help_text:
+            self.help_text.text = f"Cam Mode: {mode_name}\n[RD] / [C] to Change View"
+            self.help_text.enabled = True
 
     def input(self, key):
-        pass
+        if key == 'gamepad right shoulder' or key == 'gamepad left shoulder' or key == 'c':
+            self.cycle_mode()
