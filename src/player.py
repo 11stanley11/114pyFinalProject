@@ -201,3 +201,44 @@ class Snake:
         new_segment = Entity(model='cube', color=SNAKE_COLOR, scale=1, position=self.body[-1].position, collider=None)
         self.body.append(new_segment)
         self.update_appearance()
+
+    def reverse_and_grow(self):
+        # 1. Determine new direction from the tail end (before reversing)
+        new_dir = Vec3(0,0,0)
+        if len(self.body) < 2:
+            new_dir = -self.direction
+        else:
+            # Direction from second-to-last segment TO the last segment (tail)
+            # This becomes the forward vector of the new head
+            new_dir = self.body[-1].position - self.body[-2].position
+            
+            # Safety check if they are overlapping
+            if new_dir.length() < 0.1:
+                new_dir = -self.direction
+
+        # 2. Reverse the body
+        self.body.reverse()
+        self.head = self.body[0]
+        
+        # 3. Apply Direction
+        if new_dir.length() > 0.1:
+            self.direction = new_dir.normalized()
+        else:
+            self.direction = Vec3(0,1,0) # Absolute fallback
+
+        # Fix Up vector if it becomes parallel to direction (prevents crash/stuck)
+        if abs(self.direction.dot(self.up)) > 0.9:
+            # Pick a safe reference vector
+            ref = Vec3(1,0,0)
+            if abs(self.direction.dot(ref)) > 0.9:
+                ref = Vec3(0,1,0)
+            
+            # Recalculate Up to be perpendicular
+            self.up = self.direction.cross(ref).normalized()
+
+        # 4. Grow (adds segment at the new tail, which was the old head)
+        self.grow()
+
+        # 5. Clear buffer & Update
+        self.turn_buffer = []
+        self.update_appearance()

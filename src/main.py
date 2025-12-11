@@ -39,6 +39,9 @@ current_player_name = "Guest"
 current_cam_mode = 'follow'
 current_is_aggressive = False
 
+# Global game state for pausing
+game_unpause_time = 0.0
+
 # UI States
 main_menu = None
 game_over_ui = None
@@ -67,8 +70,9 @@ def get_occupied_positions():
     return positions
 
 def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False):
-    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud, current_cam_mode, current_is_aggressive
+    global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud, current_cam_mode, current_is_aggressive, game_unpause_time
     
+    game_unpause_time = 0.0
     main_menu.enabled = False
     current_mode = mode
     current_player_name = player_name
@@ -171,6 +175,10 @@ def check_highscore_and_end(message):
     if ai_snake: ai_snake.alive = False
 
 def update():
+    global game_unpause_time
+    if time.time() < game_unpause_time:
+        return # Pause game logic during reversal animation
+
     if not snake: return # Menu mode
 
     # if camera_controller and snake:
@@ -209,7 +217,13 @@ def update():
             snake.move()
 
             if snake.head.position == food.position:
-                snake.grow()
+                
+                if current_mode == 'reverse':
+                    snake.reverse_and_grow()
+                    game_unpause_time = time.time() + 0.75
+                else:
+                    snake.grow()
+                
                 food.reposition(occupied_positions=get_occupied_positions())
                 update_score(score + 1)
                 eat_sound.play()

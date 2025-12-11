@@ -180,6 +180,7 @@ class MainMenu(Entity):
         # Data
         self.modes = [
             {'key': 'classic', 'name': 'Classic Mode', 'desc': 'Classic Snake: Eat and Grow', 'color': color.yellow},
+            {'key': 'reverse', 'name': 'Reverse Mode', 'desc': 'Eat Food -> Body Reverses!', 'color': color.cyan},
             {'key': 'ai', 'name': 'Survival Mode (Easy)', 'desc': 'Avoid the AI Snake!', 'color': color.orange},
             {'key': 'ai_hard', 'name': 'Survival Mode (Hard)', 'desc': 'Hunter AI: Chases you!', 'color': color.red}
         ]
