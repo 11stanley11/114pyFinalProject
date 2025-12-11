@@ -194,16 +194,16 @@ class MainMenu(Entity):
         self.bg = Entity(parent=self, model='quad', scale=(20, 10), color=color.black66, z=10)
         
         # Title (Top of the center group)
-        self.title = Text(text='3D SNAKE', parent=self, scale=6, y=0.2, origin=(0,0), color=color.white, z=-1, font=BOLD_FONT)
+        self.title = Text(text='3D SNAKE', parent=self, scale=6, y=0.375, origin=(0,0), color=color.white, z=-1, font=BOLD_FONT)
 
         # Mode Panel (Background for the mode selector)
-        self.mode_panel = Entity(parent=self, model='quad', scale=(0.7, 0.2), position=(0, -0.05), color=color.black33, z=1)
+        self.mode_panel = Entity(parent=self, model='quad', scale=(0.7, 0.2), position=(0, -0.375), color=color.black33, z=1)
 
         # Mode Selector Area (Centered)
-        self.mode_label = Text(text='MODE', parent=self, scale=1.5, position=(0, 0.075), origin=(0,0), color=color.light_gray, z=-1, font=REGULAR_FONT)
+        self.mode_label = Text(text='MODE', parent=self, scale=1.5, position=(0, -0.255), origin=(0,0), color=color.light_gray, z=-1, font=REGULAR_FONT)
         
         # Container for the mode display
-        self.mode_display = Entity(parent=self, position=(0, 0))
+        self.mode_display = Entity(parent=self, position=(0, -0.33))
         
         # Mode Name
         self.mode_name_text = Text(text='', parent=self.mode_display, scale=2, origin=(0,0), y=-0.025, color=color.azure, z=-1, font=REGULAR_FONT)
@@ -211,14 +211,14 @@ class MainMenu(Entity):
         self.mode_desc_text = Text(text='', parent=self.mode_display, scale=1, origin=(0,0), y=-0.075, color=color.white, z=-1, font=REGULAR_FONT)
 
         # Navigation Buttons (Aligned with mode display)
-        self.btn_prev = Button(model=Circle(resolution=3), color=color.azure, scale=(0.04, 0.03), rotation_z=-90, position=(-0.375, -0.05), parent=self, z=-1)
+        self.btn_prev = Button(model=Circle(resolution=3), color=color.azure, scale=(0.04, 0.03), rotation_z=-90, position=(-0.375, -0.375), parent=self, z=-1)
         self.btn_prev.on_click = self.prev_mode
         
-        self.btn_next = Button(model=Circle(resolution=3), color=color.azure, scale=(0.04, 0.03), rotation_z=90, position=(0.375, -0.05), parent=self, z=-1)
+        self.btn_next = Button(model=Circle(resolution=3), color=color.azure, scale=(0.04, 0.03), rotation_z=90, position=(0.375, -0.375), parent=self, z=-1)
         self.btn_next.on_click = self.next_mode
 
         # Play Button (Bottom of the center group)
-        self.btn_play = Button(text='PLAY', color=color.gray, text_size=1.25, scale=(0.175, 0.06), position=(0, -0.2), parent=self, z=-1, highlight_text_color=color.green, font=ITALIC_FONT)
+        self.btn_play = Button(text='PLAY', color=color.black10, text_size=1.25, scale=(0.175, 0.06), position=(0, 0), parent=self, z=-1, highlight_text_color=color.green, font=ITALIC_FONT)
         self.btn_play.on_click = self.on_play
         # Explicitly set font and color for the button's text entity
         self.btn_play.text_entity.font = ITALIC_FONT
