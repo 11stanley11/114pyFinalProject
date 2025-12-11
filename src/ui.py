@@ -218,7 +218,7 @@ class MainMenu(Entity):
         self.btn_next.on_click = self.next_mode
 
         # Play Button (Bottom of the center group)
-        self.btn_play = Button(text='PLAY', color=color.black10, text_size=1.25, scale=(0.175, 0.06), position=(0, 0), parent=self, z=-1, highlight_text_color=color.green, font=ITALIC_FONT)
+        self.btn_play = Button(text='PLAY', color=color.clear, text_size=1.25, scale=(0.175, 0.06), position=(0, 0), parent=self, z=-1, highlight_text_color=color.green, font=ITALIC_FONT)
         self.btn_play.on_click = self.on_play
         # Explicitly set font and color for the button's text entity
         self.btn_play.text_entity.font = ITALIC_FONT
@@ -256,15 +256,19 @@ class MainMenu(Entity):
 
         # Player Name Input (Above Leaderboard)
         # Position relative to leaderboard will be handled in update()
-        self.name_label = Text(text='Currently playing as:', parent=self, scale=1 ,origin=(-0.5, 0), color=color.light_gray, font=REGULAR_FONT)
+        self.name_label = Text(text='Currently playing as:', parent=self, scale=1, origin=(-0.5, 0), color=color.light_gray, font=REGULAR_FONT)
         
         # Position InputField to the right of the label
-        self.name_input = InputField(default_value='Guest', parent=self, position=(-0.675, 0.03), scale=(0.25, 0.04), color=color.clear, active=False, font=REGULAR_FONT)
+        self.name_input = InputField(default_value='Guest', parent=self, position=(0, 0.03), scale=(0.25, 0.04), color=color.clear, active=False, font=REGULAR_FONT)
+        self.name_input.highlight_color = color.clear # Set explicitly after init to avoid conflict
         self.name_input.text_color = color.white
+        
         # Force font application on internal TextField text_entity and adjust text scale
         if hasattr(self.name_input, 'text_field') and hasattr(self.name_input.text_field, 'text_entity'):
             self.name_input.text_field.text_entity.font = REGULAR_FONT
-            self.name_input.text_field.text_entity.scale = 0.9 # Adjust text size inside the input field
+            # Ensure cursor has a consistent color
+            if hasattr(self.name_input.text_field, 'cursor'):
+                self.name_input.text_field.cursor.color = color.white 
             
         # Update leaderboard when name changes to apply highlighting
         self.name_input.on_value_changed = lambda: self.update_leaderboard()
@@ -344,7 +348,7 @@ class MainMenu(Entity):
             lb_top_y = self.leaderboard_container.y + 0.41
             
             self.name_label.position = (self.leaderboard_container.x + 0.01, lb_top_y + 0.02)
-            self.name_input.position = (self.leaderboard_container.x + 0.125, lb_top_y - 0.01) # Slightly lower than label
+            self.name_input.position = (self.leaderboard_container.x + 0.123, lb_top_y - 0.01) # Slightly lower than label
 
     def update_settings_ui(self):
         for key, ui in self.cam_toggles.items():
