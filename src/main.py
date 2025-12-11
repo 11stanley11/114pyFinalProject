@@ -70,24 +70,51 @@ def get_occupied_positions():
         positions.extend([s.position for s in ai_snake.body])
     return positions
 
-def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False):
+def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False, preview=False, grid_size=None):
     global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud, current_cam_mode, current_is_aggressive, game_unpause_time
     
     game_unpause_time = 0.0
-    main_menu.enabled = False
+    if not preview:
+        main_menu.enabled = False
+    
     current_mode = mode
     current_player_name = player_name
     current_cam_mode = cam_mode
     current_is_aggressive = is_aggressive
+    
+    # Handle Grid Size
+    target_grid_size = grid_size if grid_size is not None else config.GRID_SIZE
+    if grid_size is not None:
+        config.GRID_SIZE = grid_size
 
-    if not bg_music.playing:
+    # Only play music if this is a real game, not a preview
+    if not preview and not bg_music.playing:
         bg_music.play()
+    elif preview and bg_music.playing:
+        bg_music.stop()
     
     # Update grid size visibility (instant, no rebuild)
     if grid:
         grid.set_size(config.GRID_SIZE)
         grid.enabled = True
     
+    # Clean up existing entities if they exist (for preview updates)
+    if snake:
+        for segment in snake.body: destroy(segment)
+        snake = None
+    if ai_snake:
+        ai_snake.reset()
+        ai_snake = None
+    if food:
+        destroy(food)
+        food = None
+    if camera_controller:
+        destroy(camera_controller)
+        camera_controller = None
+    if game_hud and not preview:
+        destroy(game_hud)
+        game_hud = None
+
     snake = Snake()
     # direction_hints = DirectionHints(snake)
     
@@ -105,11 +132,14 @@ def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False
     camera_controller = SnakeCamera(snake)
     camera_controller.set_mode(cam_mode)
     
-    # Initialize HUD
-    if game_hud: destroy(game_hud)
-    game_hud = GameHUD(player_name, current_mode)
+    # Initialize HUD only if playing
+    if not preview:
+        if game_hud: destroy(game_hud)
+        game_hud = GameHUD(player_name, current_mode)
+        update_score(0)
     
-    update_score(0)
+    # If preview, we might want to rotate the camera or something, but standard is fine.
+
 
 def update_score(new_val):
     global score
@@ -156,8 +186,13 @@ def restart_game():
 
 def show_menu():
     stop_game()
+    bg_music.stop() # Stop music when returning to menu
+    
     main_menu.update_leaderboard() # Refresh leaderboard in case we added a score
     main_menu.enabled = True
+    
+    # Force update preview
+    main_menu.update_mode_display()
 
 def check_highscore_and_end(message):
     global game_over_ui
@@ -180,6 +215,11 @@ def check_highscore_and_end(message):
 
 def update():
     global game_unpause_time
+    
+    # Don't update game logic if menu is open
+    if main_menu and main_menu.enabled:
+        return
+
     if time.time() < game_unpause_time:
         return # Pause game logic during reversal animation
 
@@ -249,8 +289,17 @@ def input(key):
         if key == 'r': restart_game()
         if key == 'm': show_menu()
 
+def on_menu_mode_changed(mode, cam_mode, is_aggressive, grid_size):
+    # Update the background preview
+    start_game(mode, "Guest", cam_mode, is_aggressive, preview=True, grid_size=grid_size)
+
 # --- STARTUP ---
-main_menu = MainMenu(start_game, application.quit,bg_music)
+main_menu = MainMenu(start_game, application.quit, bg_music, grid, on_menu_mode_changed)
+
+# Initialize preview
+start_game('classic', "Guest", 'follow', False, preview=True, grid_size=8)
+# Re-enable menu because start_game(preview=True) keeps it enabled, but let's be safe
+main_menu.enabled = True 
 
 if __name__ == '__main__':
     app.run()

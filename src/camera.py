@@ -77,11 +77,12 @@ class OrbitalCameraMode(CameraMode):
     def enable(self):
         super().enable()
         camera.fov = 90
-        if self.snake.head: 
-            pos, look = self._target_info()
-            camera.position = pos
-            camera.look_at(look) 
-            camera.rotation_z = 0
+        # Smooth transition instead of snap
+        # if self.snake.head: 
+        #     pos, look = self._target_info()
+        #     camera.position = pos
+        #     camera.look_at(look) 
+        #     camera.rotation_z = 0
 
     def update(self):
         super().update()
@@ -131,11 +132,12 @@ class TopDownCameraMode(CameraMode):
     def enable(self):
         super().enable()
         camera.fov = 90
-        if self.snake.head:
-            pos, look = self._target_info()
-            camera.position = pos
-            # Use lookAt (Capital A) and REMOVE axis='forward'.
-            camera.lookAt(look, Vec3(0, 1, 0))
+        # Smooth transition instead of snap
+        # if self.snake.head:
+        #     pos, look = self._target_info()
+        #     camera.position = pos
+        #     # Use lookAt (Capital A) and REMOVE axis='forward'.
+        #     camera.lookAt(look, Vec3(0, 1, 0))
         
     def update(self):
         super().update()
@@ -164,9 +166,9 @@ class FollowCameraMode(CameraMode):
     def enable(self):
         super().enable()
         camera.fov = 90
-        # Instant rotate, smooth zoom (speed=0 for orientation only)
-        if self.snake.head:
-            self._update_cam(speed=0)
+        # Smooth transition instead of snap
+        # if self.snake.head:
+        #    self._update_cam(speed=0)
 
     def update(self):
         super().update()

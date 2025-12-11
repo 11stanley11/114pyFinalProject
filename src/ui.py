@@ -172,11 +172,13 @@ class GameOverUI(Entity):
 
 
 class MainMenu(Entity):
-    def __init__(self, start_game_callback, quit_callback,bg_music_track):
+    def __init__(self, start_game_callback, quit_callback, bg_music_track, world_grid=None, on_mode_changed_callback=None):
         super().__init__(parent=camera.ui)
         self.start_game_callback = start_game_callback
         self.quit_callback = quit_callback
         self.bg_music_track = bg_music_track
+        self.world_grid = world_grid
+        self.on_mode_changed_callback = on_mode_changed_callback
         
         # Data
         self.modes = [
@@ -328,6 +330,9 @@ class MainMenu(Entity):
         self.selected_cam_mode = mode
         self.update_settings_ui()
         print(f"Selected Mode: {mode}")
+        
+        # Trigger update
+        self.update_mode_display()
 
     def update(self):
         # Dynamically align Leaderboard to bottom left
@@ -391,6 +396,25 @@ class MainMenu(Entity):
         self.mode_desc_text.text = mode_data['desc']
         self.mode_name_text.color = mode_data['color']
         self.update_leaderboard()
+        
+        if self.on_mode_changed_callback:
+            # Determine logic similar to on_play
+            selected_mode_key = mode_data['key']
+            actual_mode = selected_mode_key
+            is_aggressive = False
+            grid_size_preview = 8 # Default
+
+            if selected_mode_key == 'classic_large':
+                actual_mode = 'classic'
+                grid_size_preview = 12
+            elif selected_mode_key == 'ai_hard':
+                actual_mode = 'ai'
+                is_aggressive = True
+            elif selected_mode_key == 'ai':
+                actual_mode = 'ai'
+                is_aggressive = False
+            
+            self.on_mode_changed_callback(actual_mode, self.selected_cam_mode, is_aggressive, grid_size_preview)
 
     def change_mode(self, direction):
         offset = 0.6 
