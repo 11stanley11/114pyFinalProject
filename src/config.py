@@ -19,4 +19,4 @@ GRID_COLOR = color.gray
 BOUNDARY_COLOR = color.light_gray
 
 AI_COLOR = color.orange
-AI_SPEED = 2  # Make it slightly slower than player so it's fair
+AI_SPEED = 3  # Make it slightly slower than player so it's fair

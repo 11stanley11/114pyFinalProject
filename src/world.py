@@ -54,3 +54,6 @@ class WorldGrid(Entity):
                                               alpha)
 
                     Entity(parent=self, model='sphere', color=joint_color, scale=joint_size, position=position)
+        
+        # Optimize: Combine all children into one mesh to reduce draw calls
+        self.combine()

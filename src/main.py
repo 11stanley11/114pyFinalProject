@@ -19,9 +19,16 @@ app = Ursina(fullscreen=FULLSCREEN)
 window.color = BACKGROUND_COLOR
 window.title = "3D Snake - Group Project"
 window.borderless = False 
+window.exit_button.visible = False
+window.fps_counter.enabled = False
+window.entity_counter.enabled = False
+window.collider_counter.enabled = False
+window.vsync = False
 
 # --- Global Variables ---
-grid = None
+grid = WorldGrid() # Pre-load grid to avoid lag during gameplay start
+grid.enabled = False
+
 snake = None
 ai_snake = None
 food = None
@@ -71,7 +78,7 @@ def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False
     if not bg_music.playing:
         bg_music.play()
     
-    if not grid: grid = WorldGrid()
+    grid.enabled = True
     
     snake = Snake()
     # direction_hints = DirectionHints(snake)
