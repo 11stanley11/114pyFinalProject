@@ -2,7 +2,8 @@
 from ursina import Entity, Vec3, color, distance, destroy
 import random
 import time
-from config import AI_COLOR, GRID_SIZE, AI_SPEED
+import config
+from config import AI_COLOR, AI_SPEED
 
 class AISnake:
     def __init__(self, start_pos=(5, 0, 5), aggressive_mode=False):
@@ -86,7 +87,7 @@ class AISnake:
         self.last_move_time = time.time()
 
         # Get all moves that won't kill us immediately
-        safe_moves = self.get_valid_moves(player_snake, GRID_SIZE)
+        safe_moves = self.get_valid_moves(player_snake, config.GRID_SIZE)
 
         if not safe_moves:
             # No moves? AI dies or freezes.

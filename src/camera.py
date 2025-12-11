@@ -5,6 +5,7 @@ Now supports multiple camera modes (Orbital, TopDown, Follow).
 
 from ursina import Entity, camera, lerp, time, Vec3, scene, window
 import math
+import config
 
 # --- 1. Base Class ---
 class CameraMode(Entity):
@@ -53,8 +54,8 @@ class OrbitalCameraMode(CameraMode):
     def __init__(self, snake, grid_center=Vec3(0,0,0), **kwargs):
         super().__init__(snake, **kwargs)
         self.center = grid_center 
-        self.radius = 20.0 
-        self.height = 10.0 
+        self.radius = config.GRID_SIZE * 2.5
+        self.height = config.GRID_SIZE * 1.25
         self.smooth = 5.0  
         self._current_az = -math.pi / 2
         
@@ -99,8 +100,8 @@ class TopDownCameraMode(CameraMode):
     """
     def __init__(self, snake, **kwargs):
         super().__init__(snake, **kwargs)
-        self.distance = 14.0 
-        self.height = 15.0 # 稍微增加高度以獲得更好的俯視視野
+        self.distance = config.GRID_SIZE * 1.75
+        self.height = config.GRID_SIZE * 1.875 # 稍微增加高度以獲得更好的俯視視野
         self.smooth = 10
         
     def _target_info(self):
@@ -156,7 +157,7 @@ class FollowCameraMode(CameraMode):
     def __init__(self, snake, **kwargs):
         super().__init__(snake, **kwargs)
         self.smooth_speed = 4
-        self.distance = 14
+        self.distance = config.GRID_SIZE * 1.75
         self.height = 5
         self.offset_side = 3
 

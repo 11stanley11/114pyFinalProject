@@ -10,7 +10,8 @@ from camera import SnakeCamera
 # from ui import DirectionHints
 from ai import AISnake
 import leaderboard
-from config import GRID_SIZE, BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED
+import config
+from config import BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED
 from ui import GameOverUI, MainMenu, GameHUD
 import time
 
@@ -82,7 +83,10 @@ def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False
     if not bg_music.playing:
         bg_music.play()
     
-    grid.enabled = True
+    # Update grid size visibility (instant, no rebuild)
+    if grid:
+        grid.set_size(config.GRID_SIZE)
+        grid.enabled = True
     
     snake = Snake()
     # direction_hints = DirectionHints(snake)
@@ -203,7 +207,7 @@ def update():
             snake.last_move_time = time.time()
             snake.handle_turn()
 
-            if snake.will_collide(GRID_SIZE):
+            if snake.will_collide(config.GRID_SIZE):
                 check_highscore_and_end("You crashed!")
                 return
             

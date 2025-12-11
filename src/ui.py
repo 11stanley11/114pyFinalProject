@@ -3,6 +3,7 @@
 from ursina import Ursina, Entity, Text, Button, camera, destroy, window, color, invoke, application, Circle, curve, Quad, InputField, Audio, Vec3
 from ursina.prefabs.window_panel import WindowPanel
 import leaderboard
+import config
 
 REGULAR_FONT = '../assets/MinecraftRegular-Bmg3.otf'
 BOLD_FONT = '../assets/MinecraftBold-nMK1.otf'
@@ -180,6 +181,7 @@ class MainMenu(Entity):
         # Data
         self.modes = [
             {'key': 'classic', 'name': 'Classic Mode', 'desc': 'Classic Snake: Eat and Grow', 'color': color.yellow},
+            {'key': 'classic_large', 'name': 'Classic (Large)', 'desc': 'Larger Grid (12x12)', 'color': color.green},
             {'key': 'reverse', 'name': 'Reverse Mode', 'desc': 'Eat Food -> Body Reverses!', 'color': color.cyan},
             {'key': 'ai', 'name': 'Survival Mode (Easy)', 'desc': 'Avoid the AI Snake!', 'color': color.orange},
             {'key': 'ai_hard', 'name': 'Survival Mode (Hard)', 'desc': 'Hunter AI: Chases you!', 'color': color.red}
@@ -430,7 +432,13 @@ class MainMenu(Entity):
         actual_mode = selected_mode_key
         is_aggressive = False
         
-        if selected_mode_key == 'ai_hard':
+        # Default Grid Size
+        config.GRID_SIZE = 8
+
+        if selected_mode_key == 'classic_large':
+            actual_mode = 'classic'
+            config.GRID_SIZE = 12
+        elif selected_mode_key == 'ai_hard':
             actual_mode = 'ai'
             is_aggressive = True
         elif selected_mode_key == 'ai':

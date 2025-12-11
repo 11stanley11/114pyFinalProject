@@ -9,6 +9,7 @@ FULLSCREEN = False
 
 # Game settings
 GRID_SIZE = 8
+MAX_GRID_SIZE = 12
 SNAKE_SPEED = 3
 
 # Colors

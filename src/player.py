@@ -5,7 +5,8 @@ Merged Strategy Pattern: Free Roam (Classic) & Standard (FPS).
 
 from ursina import Entity, Vec3, color, Vec4, lerp
 import time
-from config import SNAKE_SPEED, SNAKE_COLOR, GRID_SIZE
+import config
+from config import SNAKE_SPEED, SNAKE_COLOR
 
 # Use the border color logic if desired, or keep simple
 BORDER_COLOR = color.rgb(20, 20, 20) 
