@@ -6,7 +6,7 @@ Merged Strategy Pattern: Free Roam (Classic) & Standard (FPS).
 from ursina import Entity, Vec3, color, Vec4, lerp
 import time
 import config
-from config import SNAKE_SPEED, SNAKE_COLOR
+from config import *
 
 # Use the border color logic if desired, or keep simple
 BORDER_COLOR = color.rgb(20, 20, 20) 
@@ -119,12 +119,20 @@ class Snake:
     def __init__(self):
         # Keep original appearance logic (simple cubes)
         self.body = [
-            Entity(model='cube', color=SNAKE_COLOR, scale=1, position=(0, 0, 0), collider=None),
-            Entity(model='cube', color=SNAKE_COLOR, scale=1, position=(0, -1, 0), collider=None),
-            Entity(model='cube', color=SNAKE_COLOR, scale=1, position=(0, -2, 0), collider=None)
+            Entity(model= SNAKE_BODY_MODLE, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=(0, 0, 0), collider=None),
+            Entity(model= SNAKE_BODY_MODLE, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=(0, -1, 0), collider=None),
+            Entity(model= SNAKE_BODY_MODLE, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=(0, -2, 0), collider=None)
         ]
         self.head = self.body[0]
-        
+        self.head_model = Entity(
+            model= SNAKE_HEAD_MODLE,              
+            color= SNAKE_HEAD_COLOR,       
+            scale= SNAKE_HEAD_SCALE,                
+            position=self.head.position
+        )
+        self.direction = Vec3(0, 1, 0) 
+        self.up = Vec3(0, 0, 1)
+        self._apply_model_orientation_and_offset()
         self.direction = Vec3(0, 1, 0) 
         self.up = Vec3(0, 0, 1) 
         
@@ -139,7 +147,17 @@ class Snake:
         self.current_strategy = self.strategies['free_roam'] # Default
 
         self.update_appearance()
+    
+    def _apply_model_orientation_and_offset(self):
 
+        self.head_model.position = self.head.position
+    
+        target_look = self.head.position + self.direction
+        self.head_model.look_at(target_look) 
+        
+        self.head_model.rotation_x += 90 
+        
+        self.head_model.position += self.direction.normalized() * 0.2
     def set_strategy(self, name):
         if name in self.strategies:
             self.current_strategy = self.strategies[name]
@@ -194,12 +212,14 @@ class Snake:
 
         # Update the head reference to point to the new first segment
         self.head = self.body[0]
-        
+
+        # 移動後更新蛇頭模型的位置和朝向
+        self._apply_model_orientation_and_offset()
         # Re-apply appearance to update colors/transparency for the new order
         self.update_appearance()
 
     def grow(self):
-        new_segment = Entity(model='cube', color=SNAKE_COLOR, scale=1, position=self.body[-1].position, collider=None)
+        new_segment = Entity(model=SNAKE_BODY_MODLE, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=self.body[-1].position, collider=None)
         self.body.append(new_segment)
         self.update_appearance()
 
@@ -243,3 +263,10 @@ class Snake:
         # 5. Clear buffer & Update
         self.turn_buffer = []
         self.update_appearance()
+
+    def destroy_entities(self):
+        """
+        移除蛇頭的視覺實體
+        """
+        if self.head_model:
+            self.head_model.disable()
