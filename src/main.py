@@ -76,7 +76,9 @@ def get_occupied_positions():
 
 def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False, preview=False, grid_size=None):
     global snake, ai_snake, food, camera_controller, direction_hints, current_mode, grid, main_menu, current_player_name, game_hud, current_cam_mode, current_is_aggressive, game_unpause_time
-    
+    if snake or ai_snake or food:
+        print("Cleaning up old game entities before starting a new one.")
+        stop_game()
     game_unpause_time = 0.0
     if not preview:
         main_menu.enabled = False
@@ -163,6 +165,7 @@ def stop_game():
     if snake:
         for segment in snake.body: destroy(segment)
         # destroy(snake.head_marker)
+        snake.destroy_entities()
         snake = None
         
     if ai_snake:
@@ -225,7 +228,9 @@ def check_highscore_and_end(message):
     crash_sound.play()      # <--- Play crash sound
     bg_music.stop()
     # 2. Stop movement
-    if snake: snake.direction = Vec3(0,0,0)
+    if snake: 
+        snake.direction = Vec3(0,0,0)
+        snake.destroy_entities() 
     if ai_snake: ai_snake.alive = False
 
 def spawn_obstacle():
@@ -334,6 +339,17 @@ def input(key):
             click_sound.play()
 
     if key == 'escape': application.quit()
+
+    mapped_key = None
+    if key == 'gamepad dpad up': mapped_key = 'w'
+    elif key == 'gamepad dpad down': mapped_key = 's'
+    elif key == 'gamepad dpad left': mapped_key = 'a'
+    elif key == 'gamepad dpad right': mapped_key = 'd'
+
+    elif key == 'gamepad y': mapped_key = 'r' 
+    elif key == 'gamepad x': mapped_key = 'm' 
+
+    key = mapped_key if mapped_key else key
 
     if snake and snake.direction.length() > 0:
         if key in ['w', 'a', 's', 'd', 'q', 'e', 'space', 'shift']:
