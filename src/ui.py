@@ -183,7 +183,8 @@ class MainMenu(Entity):
         # Data
         self.modes = [
             {'key': 'classic', 'name': 'Classic Mode', 'desc': 'Classic Snake: Eat and Grow', 'color': color.yellow},
-            {'key': 'classic_large', 'name': 'Classic (Large)', 'desc': 'Larger Grid (12x12)', 'color': color.green},
+            {'key': 'classic_large', 'name': 'Classic (Large)', 'desc': 'Larger Grid (10x10)', 'color': color.green},
+            {'key': 'obstacles', 'name': 'Obstacles', 'desc': 'Eat Food -> Spawns Obstacle', 'color': config.OBSTACLE_COLOR},
             {'key': 'reverse', 'name': 'Reverse Mode', 'desc': 'Eat Food -> Body Reverses!', 'color': color.cyan},
             {'key': 'ai', 'name': 'Survival Mode (Easy)', 'desc': 'Avoid the AI Snake!', 'color': color.orange},
             {'key': 'ai_hard', 'name': 'Survival Mode (Hard)', 'desc': 'Hunter AI: Chases you!', 'color': color.red}
@@ -410,7 +411,10 @@ class MainMenu(Entity):
 
             if selected_mode_key == 'classic_large':
                 actual_mode = 'classic'
-                grid_size_preview = 12
+                grid_size_preview = 10
+            elif selected_mode_key == 'obstacles':
+                actual_mode = 'obstacles'
+                grid_size_preview = 8
             elif selected_mode_key == 'ai_hard':
                 actual_mode = 'ai'
                 is_aggressive = True
@@ -465,7 +469,10 @@ class MainMenu(Entity):
 
         if selected_mode_key == 'classic_large':
             actual_mode = 'classic'
-            config.GRID_SIZE = 12
+            config.GRID_SIZE = 10
+        elif selected_mode_key == 'obstacles':
+            actual_mode = 'obstacles'
+            config.GRID_SIZE = 8
         elif selected_mode_key == 'ai_hard':
             actual_mode = 'ai'
             is_aggressive = True

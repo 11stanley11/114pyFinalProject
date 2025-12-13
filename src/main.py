@@ -11,9 +11,10 @@ from camera import SnakeCamera
 from ai import AISnake
 import leaderboard
 import config
-from config import BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED
+from config import BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED, OBSTACLE_COLOR
 from ui import GameOverUI, MainMenu, GameHUD
 import time
+import random # Needed for obstacle spawning
 
 # --- Setup Window ---
 app = Ursina(fullscreen=FULLSCREEN)
@@ -33,6 +34,7 @@ grid.enabled = False
 snake = None
 ai_snake = None
 food = None
+obstacles = [] # List to store obstacle entities
 camera_controller = None
 direction_hints = None
 current_mode = None 
@@ -68,6 +70,8 @@ def get_occupied_positions():
         positions.extend([s.position for s in snake.body])
     if ai_snake:
         positions.extend([s.position for s in ai_snake.body])
+    # Add obstacles to occupied positions
+    positions.extend([obs.position for obs in obstacles])
     return positions
 
 def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False, preview=False, grid_size=None):
@@ -108,6 +112,12 @@ def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False
     if food:
         destroy(food)
         food = None
+    
+    # Clean up obstacles
+    for obs in obstacles:
+        destroy(obs)
+    obstacles.clear()
+
     if camera_controller:
         destroy(camera_controller)
         camera_controller = None
@@ -162,6 +172,11 @@ def stop_game():
     if food:
         destroy(food)
         food = None
+
+    # Clean up obstacles
+    for obs in obstacles:
+        destroy(obs)
+    obstacles.clear()
         
     if direction_hints:
         for hint in direction_hints.hints: destroy(hint)
@@ -213,6 +228,36 @@ def check_highscore_and_end(message):
     if snake: snake.direction = Vec3(0,0,0)
     if ai_snake: ai_snake.alive = False
 
+def spawn_obstacle():
+    occupied = get_occupied_positions()
+    # Also ensure we don't spawn on the CURRENT food position (though it might move soon, better safe)
+    if food:
+        occupied.append(food.position)
+    
+    half_grid = config.GRID_SIZE // 2
+    valid_pos = None
+    
+    for _ in range(100):
+        pos_tuple = (
+            random.randint(-half_grid + 1, half_grid - 1),
+            random.randint(-half_grid + 1, half_grid - 1),
+            random.randint(-half_grid + 1, half_grid - 1)
+        )
+        
+        is_occupied = False
+        for occ in occupied:
+            if round(occ.x) == pos_tuple[0] and round(occ.y) == pos_tuple[1] and round(occ.z) == pos_tuple[2]:
+                is_occupied = True
+                break
+        
+        if not is_occupied:
+            valid_pos = pos_tuple
+            break
+            
+    if valid_pos:
+        obs = Entity(model='cube', color=OBSTACLE_COLOR, scale=1, position=valid_pos)
+        obstacles.append(obs)
+
 def update():
     global game_unpause_time
     
@@ -259,12 +304,22 @@ def update():
                         return
 
             snake.move()
+            
+            # Check Obstacle Collision
+            if current_mode == 'obstacles':
+                for obs in obstacles:
+                    if snake.head.position == obs.position:
+                        check_highscore_and_end("You crashed into an obstacle!")
+                        return
 
             if snake.head.position == food.position:
                 
                 if current_mode == 'reverse':
                     snake.reverse_and_grow()
                     game_unpause_time = time.time() + 0.75
+                elif current_mode == 'obstacles':
+                    snake.grow()
+                    spawn_obstacle()
                 else:
                     snake.grow()
                 

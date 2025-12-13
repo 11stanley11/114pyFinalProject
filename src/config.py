@@ -16,8 +16,9 @@ SNAKE_SPEED = 3
 BACKGROUND_COLOR = color.dark_gray
 SNAKE_COLOR = color.green
 FOOD_COLOR = color.red
+OBSTACLE_COLOR = color.gray
 GRID_COLOR = color.gray
 BOUNDARY_COLOR = color.light_gray
 
 AI_COLOR = color.orange
-AI_SPEED = 3  # Make it slightly slower than player so it's fair
+AI_SPEED = 2  # Make it slightly slower than player so it's fair
