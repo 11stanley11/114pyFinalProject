@@ -369,7 +369,8 @@ class MainMenu(Entity):
             if key == 'gamepad x' or key == 's':
                 self.toggle_settings()
                 return
-
+            if key == 'm' or key == 'gamepad y':
+                self.toggle_music()
             # Navigate Up/Down (Gamepad Dpad/Stick or Arrow Keys)
             if key in ('gamepad dpad down', 'gamepad left stick down', 'down arrow'):
                 new_index = (self.settings_focus_index - 1 + 3) % 3
@@ -383,7 +384,7 @@ class MainMenu(Entity):
             
             # Select (Gamepad A or Enter key) - Redundant as movement already selects, but included for complete input context
             elif key == 'gamepad a' or key == 'enter':
-                self.set_camera_mode_by_index(self.settings_focus_index)
+                self.on_play()
                 return
 
 
