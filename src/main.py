@@ -26,7 +26,14 @@ window.fps_counter.enabled = False
 window.entity_counter.enabled = False
 window.collider_counter.enabled = False
 window.vsync = False
-
+background = Entity(
+    parent=camera,
+    model='quad',
+    texture='../assets/pict_for_snkg', 
+    scale=(160, 90),
+    z=75,
+    color=color.white
+)
 # --- Global Variables ---
 grid = WorldGrid() # Pre-load grid to avoid lag during gameplay start
 grid.enabled = False
