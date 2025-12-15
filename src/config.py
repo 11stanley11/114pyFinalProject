@@ -12,20 +12,21 @@ GRID_SIZE = 8
 MAX_GRID_SIZE = 12
 SNAKE_SPEED = 3
 #Model
-SNAKE_BODY_MODLE = '../assets/snkb.obj'
-SNAKE_HEAD_MODLE = '../assets/snhd.obj'
-
+SNAKE_BODY_MODLE = 'snkb'
+SNAKE_HEAD_MODLE = 'snhd'
+SNAKE_FOOD_MODLE = 'apple'
 #Scale
-SNAKE_BODY_SCALE = 0.5
-SNAKE_HEAD_SCALE = 0.75
+SNAKE_BODY_SCALE = 0.4
+SNAKE_HEAD_SCALE = 0.7
+FOOD_SCALE = 0.5
 # Colors
-BACKGROUND_COLOR = color.rgba32(205,216,233,a=255)
-SNAKE_COLOR = color.rgba32(33,78,175,a=255)
-SNAKE_HEAD_COLOR = color.rgba32(77,123,243,a=255)
-FOOD_COLOR = color.rgba32(232,72,31,a=255)
+BACKGROUND_COLOR = color.hex("#FFFFFF")
+SNAKE_COLOR = color.hex('#1644a1')
+SNAKE_HEAD_COLOR = color.hex('#4c7ae8')
+FOOD_COLOR = color.hex('#EA4335')
 OBSTACLE_COLOR = color.gray
-GRID_COLOR = color.gray
-BOUNDARY_COLOR = color.rgba32(86,139,52,a=255)
+GRID_COLOR = color.hex('#93C46C')
+BOUNDARY_COLOR = color.hex("#5C5C5C")
 
 AI_COLOR = color.orange
 AI_SPEED = 2  # Make it slightly slower than player so it's fair
