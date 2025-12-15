@@ -125,8 +125,7 @@ class Snake:
         ]
         self.head = self.body[0]
         self.head_model = Entity(
-            model= SNAKE_HEAD_MODLE,              
-            color= SNAKE_HEAD_COLOR,       
+            model= SNAKE_HEAD_MODLE,                    
             scale= SNAKE_HEAD_SCALE,                
             position=self.head.position
         )
@@ -174,13 +173,31 @@ class Snake:
     def update_appearance(self):
         # Original Appearance Logic
         num_segments = len(self.body)
+        
+        # --- [隱藏邏輯蛇頭] ---
+        if self.head:
+            self.head.enabled = False 
+        
+        # 確保模型可見
+        if self.head_model:
+            self.head_model.enabled = True
+        
         if num_segments <= 1:
             self.head.color = SNAKE_COLOR
             return
 
-        for i, segment in enumerate(self.body):
-            alpha = 1.0 - (i / (num_segments - 1)) * 0.8
-            segment.color = color.Color(SNAKE_COLOR.r, SNAKE_COLOR.g, SNAKE_COLOR.b, alpha)
+        num_visual_segments = num_segments - 1 
+
+        for i in range(num_visual_segments):
+            segment = self.body[i + 1] 
+            segment.enabled = True 
+            
+            ratio = i / (num_visual_segments - 1) if num_visual_segments > 1 else 0
+            
+            segment.color = lerp(SNAKE_HEAD_COLOR, SNAKE_COLOR, ratio)
+            alpha = 1.0 - (ratio * 0.8)
+            segment.color.w = alpha 
+            pass
 
     def will_collide(self, grid_size):
         next_head_position = self.head.position + self.direction.normalized()
