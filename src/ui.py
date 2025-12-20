@@ -549,10 +549,12 @@ class MainMenu(Entity):
 
         if self.music_enabled:
             # Turn ON
+            print("onon")
             self.bg_music_track.volume = 0.5 
-            self.btn_music.texture = '../assets/speakeron.png'
+            self.btn_music.texture = 'speakeron.png'
         else:
             # Turn OFF
+            print("offoff")
             self.bg_music_track.volume = 0
-            self.btn_music.texture = '../assets/speakerOff.png'
+            self.btn_music.texture = 'speakeroff.png'
 
