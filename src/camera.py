@@ -3,8 +3,8 @@ Camera logic for following the snake in 3D space
 Now supports multiple camera modes (Orbital, TopDown, Follow).
 """
 
-from ursina import Entity, camera, lerp, time, Vec3, scene, window
 import math
+from ursina import *
 import config
 
 # --- 1. Base Class ---
@@ -95,61 +95,72 @@ class OrbitalCameraMode(CameraMode):
 
 class TopDownCameraMode(CameraMode):
     """
-    Mode: Top Down
-    Looking down from above.
-    修正：蛇往上移動時，相機不會跑到下方，而是保持在上方俯視。
+    Mode: Orbital / Tracking with Lock
+    - Default: Rotates around the center of the grid, tracking the snake's angle.
+    - Press 'L': Toggles LOCK mode. When locked, the camera freezes completely.
     """
-    def __init__(self, snake, **kwargs):
+    def __init__(self, snake, grid_center=Vec3(0,0,0), **kwargs):
         super().__init__(snake, **kwargs)
-        self.distance = config.GRID_SIZE * 1.75
-        self.height = config.GRID_SIZE * 1.875 # 稍微增加高度以獲得更好的俯視視野
-        self.smooth = 10
+        self.center = grid_center 
+        self.radius = config.GRID_SIZE * 2.5
+        self.height = config.GRID_SIZE * 1.25
+        self.smooth = 5.0  
+        self._current_az = -math.pi / 2
         
-    def _target_info(self):
-        # 取得最後的有效方向
-        direction = self.last_valid_direction
+        # 鎖定狀態控制
+        self.locked = False
+        self._l_pressed = False
         
-        # [修正] 只計算水平面 (XZ) 的後退方向
-        # 這樣當蛇往 Y 軸移動時，相機不會跟著跑到下面去
-        flat_dir = Vec3(direction.x, 0, direction.z)
-        
-        # 如果蛇是垂直移動 (flat_dir 接近 0)，我們就維持一個預設的 Z 軸後退
-        # 或者你可以選擇維持「上一次」的水平方向 (稍微複雜一點)，這裡用預設 Z 軸通常夠用
-        if flat_dir.length() < 0.1:
-            flat_dir = Vec3(0, 0, -1) 
-        else:
-            flat_dir = flat_dir.normalized()
+    def _azimuth_from_head(self):
+        # 計算相對於中心的角度
+        rel = self.snake.head.position - self.center
+        dist_sq = rel.x**2 + rel.z**2
+        if dist_sq < 0.1: return self._current_az
+        target_az = math.atan2(rel.z, rel.x)
+        self._current_az = target_az 
+        return target_az
 
-        # 計算目標位置：
-        # X/Z: 蛇頭位置 - 水平方向 * 距離
-        # Y:   蛇頭位置 + 固定高度 (確保永遠在上面)
-        target_pos = self.snake.head.position - (flat_dir * self.distance)
-        target_pos.y = self.snake.head.position.y + self.height
-        
-        look_point = self.snake.head.position
-        return target_pos, look_point
+    def _target_info(self):
+        az = self._azimuth_from_head()
+        cam_x = self.center.x + self.radius * math.cos(az)
+        cam_z = self.center.z + self.radius * math.sin(az)
+        cam_y = self.snake.head.position.y + self.height 
+        return Vec3(cam_x, cam_y, cam_z), self.snake.head.position
 
     def enable(self):
         super().enable()
         camera.fov = 90
         # Smooth transition instead of snap
-        # if self.snake.head:
+        # if self.snake.head: 
         #     pos, look = self._target_info()
         #     camera.position = pos
-        #     # Use lookAt (Capital A) and REMOVE axis='forward'.
-        #     camera.lookAt(look, Vec3(0, 1, 0))
-        
+        #     camera.look_at(look) 
+        #     camera.rotation_z = 0
+
     def update(self):
         super().update()
         if not self.active or not self.snake or not self.snake.head: return
         
+        # --- L 鍵鎖定切換邏輯 ---
+        if held_keys['l']:
+            if not self._l_pressed:
+                self.locked = not self.locked
+                self._l_pressed = True
+                # 可選：在控制台印出狀態
+                status = "LOCKED (Frozen)" if self.locked else "UNLOCKED (Tracking)"
+                print(f"[Camera] {status}")
+        else:
+            self._l_pressed = False
+        # ----------------------
+
+        # [關鍵修正] 如果鎖定，完全不更新相機位置與角度 (達成「完全不要動」)
+        if self.locked:
+            return
+
         target_pos, look_point = self._target_info()
-        
         camera.position = lerp(camera.position, target_pos, time.dt * self.smooth)
-        # Use lookAt (Capital A) and REMOVE axis='forward'.
-        camera.lookAt(look_point, Vec3(0, 1, 0))
-
-
+        camera.lookAt(look_point, Vec3(0,1,0))
+        camera.rotation_z = 0
 class FollowCameraMode(CameraMode):
     """
     Mode: Follow / Action (Classic)
