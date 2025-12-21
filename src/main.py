@@ -4,6 +4,7 @@ With DEBUG INPUT enabled.
 """
 
 from ursina import *
+from pathlib import Path
 import time
 import random
 
@@ -18,8 +19,27 @@ import config
 from config import BACKGROUND_COLOR, FULLSCREEN, SNAKE_SPEED, OBSTACLE_COLOR, GRID_SIZE
 from ui import GameOverUI, MainMenu, GameHUD
 
+# --- Asset Path Setup ---
+# Set asset folder to the project root (parent of 'src')
+# This allows loading assets like model='snkb' or texture='pict_for_snkg' directly
+# MUST BE SET BEFORE Ursina() INIT if possible, or immediately after import if `application` is available.
+# Actually, Ursina() uses it during __init__.
+application.asset_folder = Path(__file__).parent.parent
+application.development_mode = False # Disable auto-compression of models to prevent 'models_compressed' folder creation
+
+# Fail-safe: Force delete 'models_compressed' if it exists in src to prevent startup crashes
+bad_cache = Path(__file__).parent / 'models_compressed'
+if bad_cache.exists():
+    import shutil
+    try:
+        shutil.rmtree(bad_cache)
+        print("Cleaned up corrupted cache folder.")
+    except Exception as e:
+        print(f"Warning: Could not clean cache: {e}")
+
 # --- Setup Window ---
 app = Ursina(fullscreen=FULLSCREEN)
+
 window.color = BACKGROUND_COLOR
 window.title = "3D Snake - Group Project (DEBUG MODE)"
 window.borderless = False 
@@ -31,7 +51,7 @@ window.vsync = False
 background = Entity(
     parent=camera,
     model='quad',
-    texture='../assets/pict_for_snkg', 
+    texture='pict_for_snkg', 
     scale=(160, 90),
     z=75,
     color=color.white
@@ -61,10 +81,10 @@ game_over_ui = None
 game_hud = None
 
 # Audio
-bg_music = Audio('../assets/bgm.wav', loop=True, autoplay=False, volume=0.5, eternal=True)
-eat_sound = Audio('../assets/eat apple.wav', loop=False, autoplay=False)
-crash_sound = Audio('../assets/game-over-arcade-6435.wav', loop=False, autoplay=False)
-click_sound = Audio('../assets/button.wav', loop=False, autoplay=False)
+bg_music = Audio('bgm.wav', loop=True, autoplay=False, volume=0.5, eternal=True)
+eat_sound = Audio('eat apple.wav', loop=False, autoplay=False)
+crash_sound = Audio('game-over-arcade-6435.wav', loop=False, autoplay=False)
+click_sound = Audio('button.wav', loop=False, autoplay=False)
 
 # --- GAME LOGIC ---
 

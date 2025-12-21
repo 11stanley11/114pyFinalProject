@@ -11,7 +11,7 @@ class Food(Entity):
     def __init__(self, occupied_positions=None):
         if occupied_positions is None: occupied_positions = []
         super().__init__(
-            model=SNAKE_FOOD_MODLE,
+            model=SNAKE_FOOD_MODEL,
             color=FOOD_COLOR,
             scale=FOOD_SCALE,
             position=self.get_valid_position(occupied_positions),

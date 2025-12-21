@@ -220,9 +220,9 @@ class Snake:
         
         # 初始化平躺
         self.body = [
-            Entity(model=SNAKE_BODY_MODLE, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=(0, 0, 0), collider=None),
-            Entity(model=SNAKE_BODY_MODLE, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=(0, 0, -1), collider=None),
-            Entity(model=SNAKE_BODY_MODLE, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=(0, 0, -2), collider=None)
+            Entity(model=SNAKE_BODY_MODEL, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=(0, 0, 0), collider=None),
+            Entity(model=SNAKE_BODY_MODEL, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=(0, 0, -1), collider=None),
+            Entity(model=SNAKE_BODY_MODEL, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=(0, 0, -2), collider=None)
         ]
         self.head = self.body[0]
         
@@ -233,7 +233,7 @@ class Snake:
         # Visual Mesh
         self.head_mesh = Entity(
             parent=self.head_model,
-            model=SNAKE_HEAD_MODLE,                    
+            model=SNAKE_HEAD_MODEL,                    
             scale=SNAKE_HEAD_SCALE,
             rotation_z=180, 
             rotation_y=270,
@@ -328,7 +328,7 @@ class Snake:
         self.update_appearance()
 
     def grow(self):
-        new_segment = Entity(model=SNAKE_BODY_MODLE, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=self.body[-1].position, collider=None)
+        new_segment = Entity(model=SNAKE_BODY_MODEL, color=SNAKE_COLOR, scale=SNAKE_BODY_SCALE, position=self.body[-1].position, collider=None)
         self.body.append(new_segment)
         self.update_appearance()
 
