@@ -85,6 +85,10 @@ bg_music = Audio('bgm.wav', loop=True, autoplay=False, volume=0.5, eternal=True)
 eat_sound = Audio('eat apple.wav', loop=False, autoplay=False)
 crash_sound = Audio('game-over-arcade-6435.wav', loop=False, autoplay=False)
 click_sound = Audio('button.wav', loop=False, autoplay=False)
+# Audio Engine "Keep Alive" Workaround
+# Fixes issue where music stops if no other sound plays for a while.
+keep_alive_sound = Audio('button.wav', loop=False, autoplay=False, volume=0.0) 
+last_keep_alive_time = 0.0
 
 # --- GAME LOGIC ---
 
@@ -265,9 +269,21 @@ def spawn_obstacle():
         obstacles.append(obs)
 
 def update():
-    global game_unpause_time
+    global game_unpause_time, last_keep_alive_time
     
     if main_menu and main_menu.enabled: return
+
+    # Ensure background music is playing if the game is active (and not Game Over)
+    # This fixes an issue where music might stop unexpectedly.
+    if snake and not game_over_ui and not bg_music.playing:
+        bg_music.play()
+
+    # AUDIO WORKAROUND: Play a silent sound every 1.5s to keep the audio engine "awake"
+    # This prevents the background music from pausing due to driver timeouts/sleeping.
+    if snake and not game_over_ui and time.time() - last_keep_alive_time > 1.5:
+        keep_alive_sound.play()
+        last_keep_alive_time = time.time()
+
     if time.time() < game_unpause_time: return
     if not snake: return 
 
