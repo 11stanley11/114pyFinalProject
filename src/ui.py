@@ -274,23 +274,26 @@ class MainMenu(Entity):
         # Update leaderboard when name changes to apply highlighting
         self.name_input.on_value_changed = lambda: self.update_leaderboard()
 
+        # --- Bottom Right Container ---
+        self.br_container = Entity(parent=self)
+
         # Settings Button (Bottom Right)
-        self.btn_settings = Button(model='quad', texture='../assets/settingsIcon.png', scale=(0.06, 0.06), position=(0.69, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
+        self.btn_settings = Button(model='quad', texture='../assets/settingsIcon.png', scale=(0.06, 0.06), position=(-0.08, 0.03), parent=self.br_container, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_settings.on_click = self.toggle_settings
 
         # Quit Button (Bottom Right, right of Settings)
-        self.btn_quit = Button(model='quad', texture='../assets/quitIcon.png', scale=(0.045, 0.045), position=(0.75, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
+        self.btn_quit = Button(model='quad', texture='../assets/quitIcon.png', scale=(0.045, 0.045), position=(-0.02, 0.03), parent=self.br_container, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_quit.on_click = self.quit_callback
 
         # --- MUSIC BUTTON (New) ---
-        # Position: 0.63 (Left of Settings), -0.44 (Bottom aligned)
-        self.btn_music = Button(model='quad', texture='../assets/speakeron.png', scale=(0.045, 0.045), position=(0.63, -0.439), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
+        # Position: Left of Settings
+        self.btn_music = Button(model='quad', texture='../assets/speakeron.png', scale=(0.045, 0.045), position=(-0.14, 0.03), parent=self.br_container, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_music.on_click = self.toggle_music
         self.music_enabled = True  
 
         # --- Settings Panel (Bottom Right) ---
         # Panel Background
-        self.settings_panel = Entity(parent=self, position=(0.6, -0.2), enabled=False, z=-2)
+        self.settings_panel = Entity(parent=self.br_container, position=(-0.17, 0.27), enabled=False, z=-2)
         Entity(parent=self.settings_panel, model='quad', scale=(0.35, 0.4), color=color.black66, origin=(0,0))
         
         # Title
@@ -350,6 +353,10 @@ class MainMenu(Entity):
             
             self.name_label.position = (self.leaderboard_container.x + 0.01, lb_top_y + 0.02)
             self.name_input.position = (self.leaderboard_container.x + 0.123, lb_top_y - 0.01) # Slightly lower than label
+
+        # Dynamically align Bottom Right Container
+        if self.br_container:
+            self.br_container.position = window.bottom_right + Vec3(-0.03, 0.03, 0)
 
     def set_camera_mode_by_index(self, index):
         """Maps index (0, 1, 2) to mode key ('orbital', 'topdown', 'follow') and updates the UI."""

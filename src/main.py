@@ -40,7 +40,7 @@ if bad_cache.exists():
 # --- Setup Window ---
 app = Ursina(fullscreen=FULLSCREEN)
 
-window.size = (1920, 1080)
+# window.size = (1920, 1080)
 window.color = BACKGROUND_COLOR
 window.title = "3D Snake - Group Project (DEBUG MODE)"
 window.borderless = False 
