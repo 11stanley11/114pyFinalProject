@@ -1,3 +1,2 @@
 ursina
-trimesh
 pathlib
