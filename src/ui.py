@@ -179,7 +179,7 @@ class MainMenu(Entity):
         self.bg_music_track = bg_music_track
         self.world_grid = world_grid
         self.on_mode_changed_callback = on_mode_changed_callback
-        
+        self.settings_focus_index = 2
         # Data
         self.modes = [
             {'key': 'classic', 'name': 'Classic Mode', 'desc': 'Classic Snake: Eat and Grow', 'color': color.yellow},
@@ -274,23 +274,26 @@ class MainMenu(Entity):
         # Update leaderboard when name changes to apply highlighting
         self.name_input.on_value_changed = lambda: self.update_leaderboard()
 
+        # --- Bottom Right Container ---
+        self.br_container = Entity(parent=self)
+
         # Settings Button (Bottom Right)
-        self.btn_settings = Button(model='quad', texture='../assets/settingsIcon.png', scale=(0.06, 0.06), position=(0.69, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
+        self.btn_settings = Button(model='quad', texture='../assets/settingsIcon.png', scale=(0.06, 0.06), position=(-0.08, 0.03), parent=self.br_container, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_settings.on_click = self.toggle_settings
 
         # Quit Button (Bottom Right, right of Settings)
-        self.btn_quit = Button(model='quad', texture='../assets/quitIcon.png', scale=(0.045, 0.045), position=(0.75, -0.44), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
+        self.btn_quit = Button(model='quad', texture='../assets/quitIcon.png', scale=(0.045, 0.045), position=(-0.02, 0.03), parent=self.br_container, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_quit.on_click = self.quit_callback
 
         # --- MUSIC BUTTON (New) ---
-        # Position: 0.63 (Left of Settings), -0.44 (Bottom aligned)
-        self.btn_music = Button(model='quad', texture='../assets/speakeron.png', scale=(0.045, 0.045), position=(0.63, -0.439), parent=self, z=-1, color=color.white, highlight_color=color.light_gray)
+        # Position: Left of Settings
+        self.btn_music = Button(model='quad', texture='../assets/speakeron.png', scale=(0.045, 0.045), position=(-0.14, 0.03), parent=self.br_container, z=-1, color=color.white, highlight_color=color.light_gray)
         self.btn_music.on_click = self.toggle_music
         self.music_enabled = True  
 
         # --- Settings Panel (Bottom Right) ---
         # Panel Background
-        self.settings_panel = Entity(parent=self, position=(0.6, -0.2), enabled=False, z=-2)
+        self.settings_panel = Entity(parent=self.br_container, position=(-0.17, 0.27), enabled=False, z=-2)
         Entity(parent=self.settings_panel, model='quad', scale=(0.35, 0.4), color=color.black66, origin=(0,0))
         
         # Title
@@ -350,6 +353,66 @@ class MainMenu(Entity):
             
             self.name_label.position = (self.leaderboard_container.x + 0.01, lb_top_y + 0.02)
             self.name_input.position = (self.leaderboard_container.x + 0.123, lb_top_y - 0.01) # Slightly lower than label
+
+        # Dynamically align Bottom Right Container
+        if self.br_container:
+            self.br_container.position = window.bottom_right + Vec3(-0.03, 0.03, 0)
+
+    def set_camera_mode_by_index(self, index):
+        """Maps index (0, 1, 2) to mode key ('orbital', 'topdown', 'follow') and updates the UI."""
+        mode_keys = ['orbital', 'topdown', 'follow']
+        if 0 <= index < len(mode_keys):
+            self.settings_focus_index = index
+            self.set_camera_mode(mode_keys[index])
+
+    def input(self, key):
+        """處理手柄和鍵盤輸入以控制選單。"""
+        if not self.enabled: return 
+        
+        if self.settings_panel.enabled:
+            # --- CONTEXT: INSIDE SETTINGS PANEL ---
+            
+            # Close/Exit (Gamepad X or S key)
+            if key == 'gamepad x' or key == 's':
+                self.toggle_settings()
+                return
+            if key == 'm' or key == 'gamepad y':
+                self.toggle_music()
+            # Navigate Up/Down (Gamepad Dpad/Stick or Arrow Keys)
+            if key in ('gamepad dpad down', 'gamepad left stick down', 'down arrow'):
+                new_index = (self.settings_focus_index - 1 + 3) % 3
+                self.set_camera_mode_by_index(new_index)
+                return
+
+            elif key in ('gamepad dpad up', 'gamepad left stick up', 'up arrow'):
+                new_index = (self.settings_focus_index + 1) % 3
+                self.set_camera_mode_by_index(new_index)
+                return
+            
+            # Select (Gamepad A or Enter key) - Redundant as movement already selects, but included for complete input context
+            elif key == 'gamepad a' or key == 'enter':
+                self.on_play()
+                return
+
+
+        else:
+            # --- CONTEXT: MAIN MENU (Direct Key Mapping) ---
+            
+            # Mode Change (Left/Right)
+            if key == 'gamepad dpad right' or key == 'gamepad left stick right' or key == 'right arrow' or key == 'gamepad left shoulder':
+                self.next_mode()
+            elif key == 'gamepad dpad left' or key == 'gamepad left stick left' or key == 'left arrow' or key == 'gamepad right shoulder':
+                self.prev_mode()
+                
+            # Direct Actions
+            elif key == 'gamepad a' or key == 'enter':
+                self.on_play()
+            elif key == 's' or key == 'gamepad x':
+                self.toggle_settings()
+            elif key == 'm' or key == 'gamepad y':
+                self.toggle_music()
+            elif key == 'gamepad back' or key == 'escape':
+                self.quit_callback()
 
     def update_settings_ui(self):
         for key, ui in self.cam_toggles.items():
@@ -493,10 +556,12 @@ class MainMenu(Entity):
 
         if self.music_enabled:
             # Turn ON
+            print("onon")
             self.bg_music_track.volume = 0.5 
-            self.btn_music.texture = '../assets/speakeron.png'
+            self.btn_music.texture = 'speakeron.png'
         else:
             # Turn OFF
+            print("offoff")
             self.bg_music_track.volume = 0
-            self.btn_music.texture = '../assets/speakerOff.png'
+            self.btn_music.texture = 'speakeroff.png'
 

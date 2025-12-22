@@ -5,15 +5,15 @@ Food for the snake.
 from ursina import Entity
 import random
 import config
-from config import FOOD_COLOR
+from config import *
 
 class Food(Entity):
     def __init__(self, occupied_positions=None):
         if occupied_positions is None: occupied_positions = []
         super().__init__(
-            model='cube',
+            model=SNAKE_FOOD_MODEL,
             color=FOOD_COLOR,
-            scale=1,
+            scale=FOOD_SCALE,
             position=self.get_valid_position(occupied_positions),
             collider=None
         )
