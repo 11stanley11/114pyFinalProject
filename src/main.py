@@ -160,7 +160,7 @@ def start_game(mode, player_name="Guest", cam_mode='follow', is_aggressive=False
     else:                                                                                                                   
        snake.set_strategy('free_roam')
 
-    if current_mode == 'ai':
+    if current_mode in ['ai', 'ai_hard']:
         ai_snake = AISnake(start_pos=(3, 0, 3), aggressive_mode=is_aggressive)
     else:
         ai_snake = None 

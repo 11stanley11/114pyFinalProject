@@ -1,1 +1,1 @@
-{"classic": [{"name": "Player1", "score": 17}], "ai": []}
+{"classic": [{"name": "Player1", "score": 17}, {"name": "Player2", "score": 1}], "ai": [{"name": "Player1", "score": 2}, {"name": "Player2", "score": 0}], "classic_large": [{"name": "Player1", "score": 2}, {"name": "Player2", "score": 1}], "obstacles": [{"name": "Player2", "score": 7}, {"name": "Player1", "score": 4}], "reverse": [{"name": "Player2", "score": 4}, {"name": "Player1", "score": 2}], "ai_hard": [{"name": "Player1", "score": 5}, {"name": "Player2", "score": 2}]}

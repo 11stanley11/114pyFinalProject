@@ -426,10 +426,6 @@ class MainMenu(Entity):
     def update_leaderboard(self):
         mode_key = self.modes[self.current_mode_index]['key']
         
-        # Map ai_hard to ai for leaderboard purposes so they share scores
-        if mode_key == 'ai_hard':
-            mode_key = 'ai'
-            
         scores = leaderboard.load_scores(mode_key)
         
         # Limit to top 10
@@ -473,16 +469,12 @@ class MainMenu(Entity):
             grid_size_preview = 8 # Default
 
             if selected_mode_key == 'classic_large':
-                actual_mode = 'classic'
                 grid_size_preview = 10
             elif selected_mode_key == 'obstacles':
-                actual_mode = 'obstacles'
                 grid_size_preview = 8
             elif selected_mode_key == 'ai_hard':
-                actual_mode = 'ai'
                 is_aggressive = True
             elif selected_mode_key == 'ai':
-                actual_mode = 'ai'
                 is_aggressive = False
             
             self.on_mode_changed_callback(actual_mode, self.selected_cam_mode, is_aggressive, grid_size_preview)
@@ -531,16 +523,12 @@ class MainMenu(Entity):
         config.GRID_SIZE = 8
 
         if selected_mode_key == 'classic_large':
-            actual_mode = 'classic'
             config.GRID_SIZE = 10
         elif selected_mode_key == 'obstacles':
-            actual_mode = 'obstacles'
             config.GRID_SIZE = 8
         elif selected_mode_key == 'ai_hard':
-            actual_mode = 'ai'
             is_aggressive = True
         elif selected_mode_key == 'ai':
-            actual_mode = 'ai'
             is_aggressive = False
             
         self.start_game_callback(actual_mode, player_name, self.selected_cam_mode, is_aggressive)
